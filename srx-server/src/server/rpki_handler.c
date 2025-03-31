@@ -396,7 +396,6 @@ static void handleEndOfData (uint32_t valCacheID, uint16_t session_id,
  */
 static bool isFatal(uint16_t errorNo)
 {
-  bool retVal = false;
   switch (errorNo)
   {
     case RPKI_EC_CORRUPT_DATA:
@@ -407,11 +406,10 @@ static bool isFatal(uint16_t errorNo)
     case RPKI_EC_DUPLICATE_ANNOUNCEMENT:
     case RPKI_EC_UNEXPECTED_PROTOCOL_VERSION:
     case RPKI_EC_ASPA_PROVIDER_LIST_ERROR:
-      retVal = true;
-      break;
+      return true;
     default:
+      return false;
   }
-  return retVal;
 }
 
 /**

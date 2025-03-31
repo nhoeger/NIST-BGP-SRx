@@ -9,6 +9,10 @@ ENV container docker
 
 
 ################## BEGIN INSTALLATION ######################
+RUN sed -i 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Base.repo
+
+
 RUN yum -y install epel-release 
 RUN yum -y install wget libconfig libconfig-devel openssl openssl-devel libcrypto.so.* telnet less gcc
 RUN yum -y install uthash-devel net-snmp readline-devel patch git net-snmp-config net-snmp-devel automake rpm-build autoconf libtool
@@ -32,7 +36,9 @@ RUN make all install && ldconfig
 WORKDIR /root/srx-server
 RUN autoreconf -i
 RUN ./configure --prefix=/usr sca_dir=/usr --cache-file=/dev/null --srcdir=.
-RUN make all install && ldconfig
+# RUN /bin/bash
+RUN make all install 
+RUN ldconfig
 
 
 WORKDIR /root/quagga-srx

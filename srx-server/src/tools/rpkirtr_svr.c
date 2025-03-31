@@ -522,6 +522,7 @@ bool sendEndOfData(int* fdPtr, uint32_t serial, uint8_t version,
       retVal = sendNum(fdPtr, &pdu, length);
       break;
     default:
+      return retVal;
   }
   return retVal;
 }
