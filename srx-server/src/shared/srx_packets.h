@@ -77,7 +77,8 @@
 /** Flags Bits  */
 #define SRX_PROXY_FLAGS_VERIFY_PREFIX_ORIGIN   1
 #define SRX_PROXY_FLAGS_VERIFY_PATH            2
-#define SRX_PROXY_FLAGS_VERIFY_ASPA            4
+#define SRX_PROXY_FLAGS_VERIFY_TRANSITIVE      4
+#define SRX_PROXY_FLAGS_VERIFY_ASPA            8
 #define SRX_PROXY_FLAGS_VERIFY_RECEIPT       128
 
 /** Block Type Bits */
@@ -228,6 +229,7 @@ typedef struct {
   uint8_t       flags;
   uint8_t       roaResSrc;
   uint8_t       bgpsecResSrc;
+  uint8_t       tranResSrc;
   uint8_t       aspaResSrc;   // reserved for ASPA validation
   uint8_t       reserved8;
   uint8_t       asType;
@@ -235,6 +237,7 @@ typedef struct {
   uint32_t      length;
   uint8_t       roaDefRes;
   uint8_t       bgpsecDefRes;
+  uint8_t       traDefRes;
   uint8_t       aspaDefRes; // reserved for ASPA validation
   uint8_t       prefixLen;
   uint32_t      requestToken; // Added with protocol version 1.0
@@ -285,6 +288,7 @@ typedef struct {
   uint8_t     roaResult;
   uint8_t     bgpsecResult;
   uint8_t     aspaResult;
+  uint8_t     tranResult;
   uint8_t     reserved8;
   uint16_t    zero16;
   uint32_t    length;          // 20 Bytes

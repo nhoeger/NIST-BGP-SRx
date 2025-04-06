@@ -70,10 +70,11 @@
 // Borrow ASN of documentation examples (rfc5398)
 #define UNKNOWN_ASN 65536
 /** Result Type Bits  */
-#define SRX_PROXY_RESTYPE_ROA       1
-#define SRX_PROXY_RESTYPE_BGPSEC    2
-#define SRX_PROXY_RESTYPE_ASPA      4
-#define SRX_PROXY_RESTYPE_RECEIPT 128
+#define SRX_PROXY_RESTYPE_ROA         1
+#define SRX_PROXY_RESTYPE_BGPSEC      2
+#define SRX_PROXY_RESTYPE_TRANISITIVE 3
+#define SRX_PROXY_RESTYPE_ASPA        4
+#define SRX_PROXY_RESTYPE_RECEIPT     128
 
 // SRX_DEV_TOYEAR can be overwritten in the config.h through configuration
 // my modifying configure.ac and rerun with autoreconf -i --force
@@ -146,11 +147,15 @@ typedef uint8_t SRxVerifyFlag;
 
 #define SRX_FLAG_ROA               1
 #define SRX_FLAG_BGPSEC            2
+#define SRX_FLAG_TRANSITIVE        3
 #define SRX_FLAG_ASPA              4
-#define SRX_FLAG_ROA_AND_ASPA     (SRX_FLAG_ROA | SRX_FLAG_ASPA)
-#define SRX_FLAG_ROA_AND_BGPSEC  (SRX_FLAG_ROA | SRX_FLAG_BGPSEC)
-#define SRX_FLAG_BGPSEC_AND_ASPA  (SRX_FLAG_BGPSEC | SRX_FLAG_ASPA)
-#define SRX_FLAG_ROA_BGPSEC_ASPA  (SRX_FLAG_ROA | SRX_FLAG_BGPSEC | SRX_FLAG_ASPA)
+#define SRX_FLAG_ROA_AND_ASPA         (SRX_FLAG_ROA | SRX_FLAG_ASPA)
+#define SRX_FLAG_ROA_AND_BGPSEC       (SRX_FLAG_ROA | SRX_FLAG_BGPSEC)
+#define SRX_FLAG_ROA_AND_TRANSITIVE   (SRX_FLAG_ROA | SRX_FLAG_TRANSITIVE)
+#define SRX_FLAG_ASPA_AND_TRANSITIVE  (SRX_FLAG_ASPA | SRX_FLAG_TRANSITIVE)
+#define SRX_FLAG_BGPSEC_AND_ASPA      (SRX_FLAG_BGPSEC | SRX_FLAG_ASPA)
+#define SRX_FLAG_ROA_BGPSEC_ASPA      (SRX_FLAG_ROA | SRX_FLAG_BGPSEC | SRX_FLAG_ASPA)
+#define SRX_FLAG_ROA_TRANSITIVE_ASPA  (SRX_FLAG_ROA | SRX_FLAG_TRANSITIVE | SRX_FLAG_ASPA)
 #define SRX_FLAG_REQUEST_RECEIPT 128
 
 /** Router specific, unique ID that identifies the RIB-in entry or update */
@@ -175,7 +180,11 @@ typedef enum {
   VRT_ASPA   = SRX_FLAG_ASPA,                 // 4
   VRT_ROAS   = SRX_FLAG_ROA_AND_ASPA,         // 5
   VRT_BSAS   = SRX_FLAG_BGPSEC_AND_ASPA,      // 6
-  VRT_ALL    = SRX_FLAG_ROA_BGPSEC_ASPA       // 7
+  VRT_ALL    = SRX_FLAG_ROA_BGPSEC_ASPA,      // 7
+  VRT_TRANSITIVE = SRX_FLAG_TRANSITIVE,      
+  VRT_ROAT = SRX_FLAG_ROA_AND_TRANSITIVE,      
+  VRT_ASPAT = SRX_FLAG_ASPA_AND_TRANSITIVE,
+  VRT_ALLT = SRX_FLAG_ROA_TRANSITIVE_ASPA
 } ValidationResultType;
 
 /** Return value */
@@ -183,6 +192,7 @@ typedef struct {
   uint8_t roaResult;
   uint8_t bgpsecResult;
   uint8_t aspaResult;
+  uint8_t transitiveResult
 } SRxResult;
 
 /** This struct contains the validation result. */
@@ -205,6 +215,7 @@ typedef struct {
   SRxResultSource resSourceROA;     // The source of the provided ROA result
   SRxResultSource resSourceBGPSEC;  // The source of the provided BGPSEC result
   SRxResultSource resSourceASPA;  // The source of the provided BGPSEC result
+  SRxResultSource resSourceTransitive;
   SRxResult       result; // the default result value provided
 } SRxDefaultResult;
 

@@ -666,14 +666,22 @@ static bool _processUpdateValidation(CommandHandler* cmdHandler,
 
   // 1. get an idea what validations are requested:
   bool originVal = _isSet(bhdr->flags, SRX_PROXY_FLAGS_VERIFY_PREFIX_ORIGIN);
+  bool transVal = _isSet(bhdr->flags, SRX_PROXY_FLAGS_VERIFY_TRANSITIVE);
   bool pathVal   = _isSet(bhdr->flags, SRX_PROXY_FLAGS_VERIFY_PATH);
   bool aspaVal   = _isSet(bhdr->flags, SRX_PROXY_FLAGS_VERIFY_ASPA);
+  
   SRxUpdateID updateID = (SRxUpdateID)item->dataID;
 
-  if (!originVal && !pathVal && !aspaVal)
+  if (!originVal && !pathVal && !aspaVal && !transVal)
   {
     RAISE_SYS_ERROR("Invalid call to process update validation, flags are not "
                     "set properly");
+    return false;
+  }
+
+  if (pathVal && transVal)
+  {
+    RAISE_SYS_ERROR("Invalid call to process update validation, cannot use tranisitive AND path validation.");
     return false;
   }
 
@@ -696,6 +704,7 @@ static bool _processUpdateValidation(CommandHandler* cmdHandler,
   SRxResult srxRes_mod;
   srxRes_mod.bgpsecResult = SRx_RESULT_DONOTUSE;
   srxRes_mod.roaResult    = SRx_RESULT_DONOTUSE; // Indicates this
+  srxRes_mod.transitiveResult   = SRx_RESULT_DONOTUSE; // Indicates this
   srxRes_mod.aspaResult   = SRx_RESULT_DONOTUSE; // Indicates this
 
     
@@ -750,6 +759,13 @@ static bool _processUpdateValidation(CommandHandler* cmdHandler,
     free(prefix);
   }
   
+  // TransitiveSignatureGeneration 
+  if (transVal)
+  {
+    RAISE_SYS_ERROR("Transitive not yet implemented ");
+    return false;
+  }
+
   //
   // ASPA validation
   //
@@ -867,9 +883,10 @@ static bool _processUpdateValidation(CommandHandler* cmdHandler,
   // is not DONOTUSE and  not originVal - in a future version the origin 
   // validation will get the validation result handed down to store and it will
   // be send there as well. Not yet though.
-  if (   (srxRes_mod.bgpsecResult != SRx_RESULT_DONOTUSE)
-      || (srxRes_mod.roaResult    != SRx_RESULT_DONOTUSE)
-      || (srxRes_mod.aspaResult   != SRx_RESULT_DONOTUSE))
+  if (   (srxRes_mod.bgpsecResult     != SRx_RESULT_DONOTUSE)
+      || (srxRes_mod.roaResult        != SRx_RESULT_DONOTUSE)
+      || (srxRes_mod.aspaResult       != SRx_RESULT_DONOTUSE)
+      || (srxRes_mod.transitiveResult != SRx_RESULT_DONOTUSE))
   {
     if (!modifyUpdateResult(cmdHandler->updCache, &item->dataID, &srxRes_mod, 
                             false))
@@ -1130,6 +1147,7 @@ bool broadcastResult(CommandHandler* self, SRxValidationResult* valResult)
     pdu->roaResult    = valResult->valResult.roaResult;
     pdu->bgpsecResult = valResult->valResult.bgpsecResult;
     pdu->aspaResult   = valResult->valResult.aspaResult;
+    pdu->tranResult   = valResult->valResult.transitiveResult;
 
     pdu->length           = htonl(pduLength);
     pdu->updateID = htonl(valResult->updateID);

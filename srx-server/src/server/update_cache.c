@@ -395,6 +395,12 @@ bool getUpdateResult(UpdateCache* self, SRxUpdateID* updateID,
     defaultRes->resSourceASPA     = cEntry->defaultResult.resSourceASPA;
     defaultRes->result.aspaResult = cEntry->defaultResult.result.aspaResult;
 
+    // Tranisitive Validation Result
+    srxRes->transitiveResult            = cEntry->srxResult.transitiveResult;
+    defaultRes -> resSourceTransitive   = cEntry->defaultResult.resSourceTransitive;
+    defaultRes->result.transitiveResult = cEntry->defaultResult.result.transitiveResult;
+
+
     if (pathId != NULL)
       *pathId = cEntry->aspathCacheID; 
 
@@ -422,6 +428,12 @@ bool getUpdateResult(UpdateCache* self, SRxUpdateID* updateID,
     srxRes->aspaResult            = SRx_RESULT_UNDEFINED;
     defaultRes->resSourceASPA     = SRxRS_DONOTUSE;
     defaultRes->result.aspaResult = SRx_RESULT_DONOTUSE;
+
+    // Tranisitive Validation
+    srxRes->transitiveResult            = SRx_RESULT_UNDEFINED;
+    defaultRes->resSourceTransitive     = SRxRS_DONOTUSE;
+    defaultRes->result.transitiveResult = SRx_RESULT_DONOTUSE;
+    
   }
 
   return retVal;
@@ -598,27 +610,32 @@ int storeUpdate(UpdateCache* self, uint8_t clientID, void* clientMapping,
     cEntry->asn           = asn;
     cEntry->aspathCacheID = pathId;
     cpyPrefix(&cEntry->prefix, prefix);
-    cEntry->srxResult.bgpsecResult = SRx_RESULT_UNDEFINED;
-    cEntry->srxResult.roaResult    = SRx_RESULT_UNDEFINED;
-    cEntry->srxResult.aspaResult   = SRx_RESULT_UNDEFINED;
+    cEntry->srxResult.bgpsecResult      = SRx_RESULT_UNDEFINED;
+    cEntry->srxResult.roaResult         = SRx_RESULT_UNDEFINED;
+    cEntry->srxResult.aspaResult        = SRx_RESULT_UNDEFINED;
+    cEntry->srxResult.transitiveResult  = SRx_RESULT_UNDEFINED;
 
     if (defRes != NULL)
     {
-      cEntry->defaultResult.result.roaResult    = defRes->result.roaResult;
-      cEntry->defaultResult.result.bgpsecResult = defRes->result.bgpsecResult;
-      cEntry->defaultResult.result.aspaResult   = defRes->result.aspaResult;
-      cEntry->defaultResult.resSourceROA        = defRes->resSourceROA;
-      cEntry->defaultResult.resSourceBGPSEC     = defRes->resSourceBGPSEC;
-      cEntry->defaultResult.resSourceASPA       = defRes->resSourceASPA;
+      cEntry->defaultResult.result.roaResult        = defRes->result.roaResult;
+      cEntry->defaultResult.result.bgpsecResult     = defRes->result.bgpsecResult;
+      cEntry->defaultResult.result.aspaResult       = defRes->result.aspaResult;
+      cEntry->defaultResult.result.transitiveResult = defRes->result.transitiveResult;
+      cEntry->defaultResult.resSourceROA            = defRes->resSourceROA;
+      cEntry->defaultResult.resSourceBGPSEC         = defRes->resSourceBGPSEC;
+      cEntry->defaultResult.resSourceASPA           = defRes->resSourceASPA;
+      cEntry->defaultResult.resSourceTransitive     = defRes->resSourceASPA;
     }
     else
     {
-      cEntry->defaultResult.result.roaResult    = SRx_RESULT_UNDEFINED;
-      cEntry->defaultResult.result.bgpsecResult = SRx_RESULT_UNDEFINED;
-      cEntry->defaultResult.result.aspaResult   = SRx_RESULT_UNDEFINED;
-      cEntry->defaultResult.resSourceROA        = SRxRS_UNKNOWN;
-      cEntry->defaultResult.resSourceBGPSEC     = SRxRS_UNKNOWN;
-      cEntry->defaultResult.resSourceASPA       = SRxRS_UNKNOWN;
+      cEntry->defaultResult.result.roaResult        = SRx_RESULT_UNDEFINED;
+      cEntry->defaultResult.result.bgpsecResult     = SRx_RESULT_UNDEFINED;
+      cEntry->defaultResult.result.aspaResult       = SRx_RESULT_UNDEFINED;
+      cEntry->defaultResult.result.transitiveResult = SRx_RESULT_UNDEFINED;
+      cEntry->defaultResult.resSourceROA            = SRxRS_UNKNOWN;
+      cEntry->defaultResult.resSourceBGPSEC         = SRxRS_UNKNOWN;
+      cEntry->defaultResult.resSourceASPA           = SRxRS_UNKNOWN;
+      cEntry->defaultResult.resSourceTransitive     = SRxRS_UNKNOWN;
     }
     // Other Update relates data
     // BGPSEC
@@ -738,9 +755,10 @@ bool modifyUpdateResult(UpdateCache* self, SRxUpdateID* updateID,
     SRxValidationResult valRes;
     valRes.updateID = updID;
     valRes.valType  = VRT_NONE;
-    valRes.valResult.roaResult    = cEntry->srxResult.roaResult;
-    valRes.valResult.bgpsecResult = cEntry->srxResult.bgpsecResult;
-    valRes.valResult.aspaResult   = cEntry->srxResult.aspaResult;
+    valRes.valResult.roaResult        = cEntry->srxResult.roaResult;
+    valRes.valResult.bgpsecResult     = cEntry->srxResult.bgpsecResult;
+    valRes.valResult.aspaResult       = cEntry->srxResult.aspaResult;
+    valRes.valResult.transitiveResult = cEntry->srxResult.transitiveResult;
     //valRes.clientID		  = cEntry->clientID;
 
     // Check if ROA results can be used.
@@ -776,6 +794,7 @@ bool modifyUpdateResult(UpdateCache* self, SRxUpdateID* updateID,
         cEntry->srxResult.aspaResult = result->aspaResult;
       }
     }
+
 
 
     // check if a validation result changed.
