@@ -1181,3 +1181,14 @@ bool broadcastResult(CommandHandler* self, SRxValidationResult* valResult)
   return retVal;
 }
 
+
+/**
+ * This function performs the signature generation for the trainsitve path attribute
+ * 
+ * @param asPathList
+ * 
+ * @return the signature
+ */
+uint8_t generateSignature (PATH_LIST* asPathList){
+  LOG(LEVEL_INFO, "Signature generation not yet implemented...");
+}
