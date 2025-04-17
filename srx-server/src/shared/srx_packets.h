@@ -119,7 +119,8 @@ typedef enum {
   PDU_SRXPROXY_PEER_CHANGE       =  9,
   PDU_SRXPROXY_SYNC_REQUEST      = 10,
   PDU_SRXPROXY_ERROR             = 11,
-  PDU_SRXPROXY_UNKNOWN           = 12    // NOT IN SPEC
+  PDU_SRXPROXY_UNKNOWN           = 12,    // NOT IN SPEC
+  PDU_SRXPROXY_REGISTER_SKI      = 13,
 } SRxProxyPDUType;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,9 +157,29 @@ typedef struct {
   uint32_t   length;            // Variable 24(+) Bytes
   uint32_t   proxyIdentifier;
   uint32_t   asn;
+  uint32_t   ski_one;
+  uint32_t   ski_two;
+  uint32_t   ski_three;
+  uint32_t   ski_four;
+  uint32_t   ski_five;
   uint32_t   noPeers;
-  PeerASList peerAS;
+  PeerASList peerAS;  
 } __attribute__((packed)) SRXPROXY_HELLO;
+
+
+/**
+ * This struct specifies the ski packet
+ */
+#define SKI_LENGTH 20
+typedef struct {
+  uint8_t    type;              // 0
+  uint16_t   version;
+  uint32_t   length;    
+  uint32_t   proxyIdentifier;
+  uint64_t   ski_one;
+  uint64_t   ski_two;
+  uint32_t   ski_three;
+} __attribute__((packed)) SRXPROXY_SKI;
 
 /**
  * This struct specifies the hello response packet

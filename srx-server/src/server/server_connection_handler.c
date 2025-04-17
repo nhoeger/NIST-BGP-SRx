@@ -1023,6 +1023,27 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
         }
 //#endif
         break;
+      case PDU_SRXPROXY_REGISTER_SKI:
+        if (!clientThread->initialized)
+        {
+          // A handshake was not performed, otherwise the clientThread would be
+          // initialized!!!
+          RAISE_SYS_ERROR("Connection not initialized yet - "
+                          "Handshake missing!!!");
+          sendError(SRXERR_INTERNAL_ERROR, svrSock, client, false);
+          sendGoodbye(svrSock, client, false);
+          //TODO: Also close the socket and remove the thread
+          // - it might be closed in goodbye though
+        }
+        else
+        {
+
+          // self->proxyMap[clientID].socket     = cSocket;
+          // the following method will add the command to the queue if
+          // necessary
+          // TODO implement
+        }
+      break;
       case PDU_SRXPROXY_SIGN_REQUEST:
         if (!clientThread->initialized)
         {
@@ -1507,6 +1528,7 @@ bool addMapping(ServerConnectionHandler* self, uint32_t proxyID,
       self->noMappings++;
       self->proxyMap[clientID].proxyID    = proxyID;
     }
+    // 
     self->proxyMap[clientID].socket     = cSocket;
     self->proxyMap[clientID].isActive   = activate;
     self->proxyMap[clientID].crashed    = 0;

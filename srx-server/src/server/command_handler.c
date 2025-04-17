@@ -243,10 +243,47 @@ static bool _processHandshake(CommandHandler* cmdHandler,
                                 CommandQueueItem* item)
 {
   SRXPROXY_HELLO* hdr  = (SRXPROXY_HELLO*)item->data;
+  // LOG (LEVEL_INFO, "ALL HELLO DATA: %u", ntohl(hdr->noPeers));
   uint32_t proxyID     = 0;
   uint8_t  clientID    = 0;
   ClientThread* clientThread = (ClientThread*)item->client; // for easier access
 
+  char ski_hex[SKI_LENGTH * 2 + 1]; // 20 bytes * 2 chars per byte + null terminator
+  uint8_t* ski_bytes = (uint8_t[]){ 
+      (ntohl(hdr->ski_one) >> 24) & 0xFF,
+      (ntohl(hdr->ski_one) >> 16) & 0xFF,
+      (ntohl(hdr->ski_one) >> 8)  & 0xFF,
+      (ntohl(hdr->ski_one))       & 0xFF,
+
+      (ntohl(hdr->ski_two) >> 24) & 0xFF,
+      (ntohl(hdr->ski_two) >> 16) & 0xFF,
+      (ntohl(hdr->ski_two) >> 8)  & 0xFF,
+      (ntohl(hdr->ski_two))       & 0xFF,
+
+      (ntohl(hdr->ski_three) >> 24) & 0xFF,
+      (ntohl(hdr->ski_three) >> 16) & 0xFF,
+      (ntohl(hdr->ski_three) >> 8)  & 0xFF,
+      (ntohl(hdr->ski_three))       & 0xFF,
+
+      (ntohl(hdr->ski_four) >> 24) & 0xFF,
+      (ntohl(hdr->ski_four) >> 16) & 0xFF,
+      (ntohl(hdr->ski_four) >> 8)  & 0xFF,
+      (ntohl(hdr->ski_four))       & 0xFF,
+
+      (ntohl(hdr->ski_five) >> 24) & 0xFF,
+      (ntohl(hdr->ski_five) >> 16) & 0xFF,
+      (ntohl(hdr->ski_five) >> 8)  & 0xFF,
+      (ntohl(hdr->ski_five))       & 0xFF,
+  };
+
+  for (int i = 0; i < SKI_LENGTH; i++) {
+      sprintf(&ski_hex[i * 2], "%02x", ski_bytes[i]);
+  }
+
+  ski_hex[SKI_LENGTH * 2] = '\0'; 
+
+  LOG(LEVEL_INFO, "Full SKI: %s", ski_hex);
+  
   if (ntohs(hdr->version) != SRX_PROTOCOL_VER)
   {
     RAISE_ERROR("Received Hello packet is of protocol version %u but expected "
@@ -275,6 +312,10 @@ static bool _processHandshake(CommandHandler* cmdHandler,
                       item->client, true))
       {
         clientID = 0; // FAIL HANDSHAKE
+      } else {
+        strncpy(cmdHandler->svrConnHandler->proxyMap[clientID].bgpsecKey, ski_hex, sizeof(cmdHandler->svrConnHandler->proxyMap[clientID].bgpsecKey) - 1);
+        cmdHandler->svrConnHandler->proxyMap[clientID].bgpsecKey[sizeof(cmdHandler->svrConnHandler->proxyMap[clientID].bgpsecKey) - 1] = '\0';  
+        LOG(LEVEL_INFO, "Set SKI for proxy[0x%08X] to %s", proxyID, cmdHandler->svrConnHandler->proxyMap[clientID].bgpsecKey);
       }
     }
 
@@ -332,6 +373,22 @@ static bool _processHandshake(CommandHandler* cmdHandler,
 
   return (clientID == 0) ? false : true;
 }
+
+
+static bool _processSKImessage(CommandHandler* cmdHandler, CommandQueueItem* item) {
+  SRXPROXY_SKI* hdr  = (SRXPROXY_SKI*)item->data;
+  uint32_t proxyID     = 0;
+  //proxyID = ntohl(hdr->ski);
+  // cmdHandler->svrConnHandler->proxyMap[proxyID].bgpsecKey = ntohl(hdr->ski);
+  LOG(LEVEL_INFO, "SKI message received from proxy[0x%08X]", proxyID);
+  // LOG(LEVEL_INFO, "New key value: %u", ntohl(hdr->ski));
+  //memcpy(cmdHandler->svrConnHandler->proxyMap[proxyID].bgpsecKey,
+   // hdr->ski,
+   // SKI_LENGTH);
+  cmdHandler->svrConnHandler->proxyMap[proxyID].hasBGPsecKey = true;
+  return false;
+}
+
 
 /**
  * Return true if the "bits" are set in the given "bitmask", otherwise false.
@@ -985,6 +1042,12 @@ static void* handleCommands(void* arg)
 
     item = fetchNextCommand(cmdHandler->queue);
 
+    LOG(LEVEL_INFO, HDR "+------------------------------+");
+    LOG(LEVEL_INFO, HDR "Command fetched [%u]!", pthread_self(), item->cmdType);
+    LOG(LEVEL_INFO, HDR "Command fetched [%u]!", pthread_self(), item->dataLength);
+    LOG(LEVEL_INFO, HDR "Command fetched [%u]!", pthread_self(), item->dataID);
+    LOG(LEVEL_INFO, HDR "Command fetched [%u]!", pthread_self(), item->data);
+    LOG(LEVEL_INFO, HDR "+------------------------------+");
     switch (item->cmdType)
     {
       case COMMAND_TYPE_SHUTDOWN:
@@ -1003,7 +1066,7 @@ static void* handleCommands(void* arg)
           SRXPROXY_BasicHeader* bhdr = (SRXPROXY_BasicHeader*)item->data;
           SRXPROXY_GOODBYE* gbhdr;
           // Logging
-          LOG(LEVEL_DEBUG, HDR "SRXPROXY PDU type [%u] (%s) fetched!",
+          LOG(LEVEL_INFO, HDR "SRXPROXY PDU type [%u] (%s) fetched!",
             pthread_self(), bhdr->type,
             packetTypeToStr(bhdr->type));
           // Depending on the type
@@ -1021,6 +1084,9 @@ static void* handleCommands(void* arg)
 		            deleteFromSList(&cmdHandler->svrConnHandler->clients,
                                 item->client);
               }
+              break;
+            case PDU_SRXPROXY_REGISTER_SKI:
+              _processSKImessage(cmdHandler, item);
               break;
             case PDU_SRXPROXY_VERIFY_V4_REQUEST:
             case PDU_SRXPROXY_VERIFY_V6_REQUEST:

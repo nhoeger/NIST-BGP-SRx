@@ -750,9 +750,9 @@ void runServerLoop(ServerSocket* self, ClientMode clMode,
     // Information
     if (self->verbose)
     {
-      LOG(LEVEL_DEBUG, HDR "New client connection: %s", pthread_self(),
+      LOG(LEVEL_DEBUG, HDR "New client connection!21234: %s", pthread_self(),
           sockAddrToStr(&caddr, infoBuffer, MAX_SOCKET_STRING_LEN));
-      LOG(LEVEL_INFO, "New client connection: %s",
+      LOG(LEVEL_INFO, "New client connection!!: %s",
           sockAddrToStr(&caddr, infoBuffer, MAX_SOCKET_STRING_LEN));
     }
 

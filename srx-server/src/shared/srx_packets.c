@@ -57,6 +57,7 @@ static const char* PACKET_TYPES[PDU_SRXPROXY_UNKNOWN + 1] = {
   "Verification_Notification",
   "Signature_Notification",
   "Error",
+  "Register_SKI",
   "Unknown"
 };
 

@@ -63,7 +63,7 @@
 #include "server/aspath_cache.h"
 #include "util/server_socket.h"
 #include "util/slist.h"
-
+#define BGPSEC_KEY_LEN 20  // Length of BGPsec key in bytes
 /** This Structure is used to identify proxies. IMPORTANT though to mention is 
  * that this map is ONLY used for initial mapping. Once the mapping is done the
  * value will be distributed into the rdata structures for speedup. This map
@@ -89,6 +89,11 @@ typedef struct {
 #ifdef USE_GRPC
   bool grpcClient;
 #endif
+  /** BGPsec key associated with this proxy client */
+  char bgpsecKey[BGPSEC_KEY_LEN * 2 + 1];
+
+  /** Indicates if a BGPsec key is present */
+  bool hasBGPsecKey;
 } ProxyClientMapping;
 
 #define MAX_PROXY_CLIENT_ELEMENTS MAX_PROXY_MAPPINGS
