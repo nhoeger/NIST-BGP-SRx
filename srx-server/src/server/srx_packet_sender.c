@@ -404,6 +404,7 @@ bool __sendPacketToClient(ServerSocket* srvSoc, ServerClient* client,
                           void* pdu, size_t size, bool useQueue)
 {
   bool retVal = false;
+  printf("Sending packet with PDU type: %u\n", ((SRXPROXY_BasicHeader*)pdu)->type);
   
   if (!useQueue)
   {
@@ -424,7 +425,6 @@ bool __sendPacketToClient(ServerSocket* srvSoc, ServerClient* client,
   
   return retVal;
 }
-
 
 /**
  * Send a hello response to the client. Does not use the sending queue.
@@ -456,6 +456,67 @@ bool sendHelloResponse(ServerSocket* srvSoc, ServerClient* client,
 
   free(pdu);
   return retVal;
+}
+
+
+
+/**
+ * Send a tranisitve siganture to the client.
+ * 
+ * @param proxyID The id of the proxy
+ * @param srvSoc The server socket
+ * @param client The client who received the original message
+ * 
+ * @return true if the message could be send or not.
+ */
+bool sendTransitiveSignature(ServerSocket* srvSoc, ServerClient* client)
+{
+  printf("Trying to send stuff");
+bool retVal = true;
+
+// === Replace with your actual SKI and signature ===
+uint8_t ski[20] = {
+0xAA, 0x1B, 0x2D, 0xFD, 0x80, 0x63, 0x6A, 0xE9, 0x43, 0xD9,
+0xDC, 0x9F, 0xF4, 0x2C, 0x1A, 0xF9, 0xD9, 0x5C, 0x72, 0x18
+};
+uint8_t signature[72] = {
+0x30, 0x45, 0x02, 0x21, 0x00, 0x9F, 0x95, 0xD9, 0x73, 0x3C, 0xF0, 0xEF, 0xCD,
+0x6A, 0xAE, 0x5A, 0xBF, 0xB4, 0xB0, 0xB5, 0x7B, 0xD2, 0xF0, 0xF3, 0xAF, 0x2A,
+0xC8, 0x9D, 0x0B, 0x2A, 0x66, 0xCC, 0x50, 0x17, 0x44, 0x65, 0x14, 0x02, 0x20,
+0x01, 0xED, 0x37, 0xAF, 0x51, 0x74, 0x1C, 0xB6, 0xB1, 0xE5, 0x05, 0x1F, 0xC1,
+0x98, 0x2E, 0xA8, 0xD1, 0xDD, 0xB5, 0x21, 0x89, 0x35, 0xD4, 0xBF, 0x7B, 0x29,
+0x56, 0xA6, 0xFD, 0x55, 0x01, 0x5D
+};
+uint16_t sigLen = 71; // your signature length
+// ==================================================
+
+// Dynamically calculate total struct size if signature is fixed
+uint32_t length = sizeof(SRXPROXY_SIGNATURE);
+SRXPROXY_SIGNATURE* pdu = malloc(length);
+if (!pdu) {
+RAISE_ERROR("Memory allocation failed!");
+return false;
+}
+
+memset(pdu, 0, length);
+pdu->type    = PDU_SRXPROXY_TRANISITVE_SIGN;
+printf("PDU type: %u\n", pdu->type);
+pdu->zero32  = 0;
+pdu->length  = length;
+
+memcpy(pdu->ski, ski, 20);
+pdu->sigLen = sigLen;
+memcpy(pdu->signature, signature, sigLen);
+
+if (!__sendPacketToClient(srvSoc, client, pdu, length, false))
+{
+RAISE_ERROR("Could not send transitive signature message!");
+printf("Here should be an error\n");
+retVal = false;
+}
+printf("Return value: %d\n", retVal);
+free(pdu);
+return retVal;
 }
 
 /**
@@ -507,7 +568,8 @@ bool sendVerifyNotification(ServerSocket* srvSoc, ServerClient* client,
                             SRxUpdateID updateID, uint8_t resultType,
                             uint32_t requestToken,
                             uint8_t roaResult, uint8_t bgpsecResult, 
-                            uint8_t aspaResult, bool useQueue)
+                            uint8_t aspaResult, uint8_t transitiveResult, 
+                            bool useQueue, bool sendSignature)
 {
   bool retVal = true;
   uint32_t length = sizeof(SRXPROXY_VERIFY_NOTIFICATION);
@@ -543,6 +605,7 @@ bool sendVerifyNotification(ServerSocket* srvSoc, ServerClient* client,
     LOG(LEVEL_DEBUG, "Notification send for update [0x%08X]", updateID);    
   }
 
+  sendTransitiveSignature(srvSoc, client);
   free(pdu);
   return retVal;
 }

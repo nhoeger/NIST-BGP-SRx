@@ -837,12 +837,13 @@ bool processValidationRequest(ServerConnectionHandler* self,
     {
       sendFlags = sendFlags | SRX_FLAG_ASPA;
     }
-
+    // TODO: Add tranisitve stuff in here
     // Now send the results we know so far;
     if (!sendVerifyNotification(svrSock, client, updateID, sendFlags,
                                 requestToken, srxRes.roaResult,
                                 srxRes.bgpsecResult, srxRes.aspaResult,
-                                !self->sysConfig->mode_no_sendqueue))
+                                srxRes.transitiveResult,!self->sysConfig->mode_no_sendqueue,
+                              true))
     {
       RAISE_ERROR("Could not send the initial verify notification for update"
         "[0x%08X] to client [0x%02X]!", updateID, client->routerID);

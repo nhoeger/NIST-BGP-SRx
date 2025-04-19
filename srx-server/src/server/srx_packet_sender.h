@@ -114,11 +114,12 @@ bool sendGoodbye(ServerSocket* srcSock, ServerClient* client, bool useQueue);
  *
  * @return true if the packet could be send, otherwise false.
  */
-bool sendVerifyNotification(ServerSocket* svrSock, ServerClient* client,
-                            SRxUpdateID updateID, uint8_t resultType,
-                            uint32_t requestToken,
-                            uint8_t roaResult, uint8_t bgpsecResult, 
-                            uint8_t aspaResult, bool useQueue);
+bool sendVerifyNotification(ServerSocket* srvSoc, ServerClient* client,
+    SRxUpdateID updateID, uint8_t resultType,
+    uint32_t requestToken,
+    uint8_t roaResult, uint8_t bgpsecResult, 
+    uint8_t aspaResult, uint8_t transitiveResult, 
+    bool useQueue, bool sendSignature);
 
 /**
  * Send a signature notification.

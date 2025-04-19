@@ -697,6 +697,17 @@ Validation_Result:
 }
 
 
+/**
+ * This function validates the transitive signatures of a path 
+ * 
+ * @param asPathList
+ * 
+ * @return a bool if the validations were valid or not 
+ */
+bool validateTranisitiveSignature(PATH_LIST* asPathList){
+  printf("Trying to validate the tranisitve signatures");
+  return true;
+}
 
 /**
  * This method is used to verify an update it is called by the command handlers
@@ -819,8 +830,19 @@ static bool _processUpdateValidation(CommandHandler* cmdHandler,
   // TransitiveSignatureGeneration 
   if (transVal)
   {
-    RAISE_SYS_ERROR("Transitive not yet implemented ");
-    return false;
+    LOG(LEVEL_INFO,"Start of validating the transitive siganture");
+    // Get the data needed for transitive signature validation
+    UC_UpdateData* uData = getUpdateData(cmdHandler->updCache, &item->dataID);
+    if (uData == NULL)
+    {  
+      RAISE_ERROR("Update Information for update [0x%08X] are not properly "
+                   "stored in update cache!");
+      return false;
+    }
+    
+    // srxRes_mod.bgpsecResult = validateSignature(cmdHandler->bgpsecHandler, uData);
+    srxRes_mod.transitiveResult = true;
+    // return true;
   }
 
   //

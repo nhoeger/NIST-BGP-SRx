@@ -121,6 +121,7 @@ typedef enum {
   PDU_SRXPROXY_ERROR             = 11,
   PDU_SRXPROXY_UNKNOWN           = 12,    // NOT IN SPEC
   PDU_SRXPROXY_REGISTER_SKI      = 13,
+  PDU_SRXPROXY_TRANISITVE_SIGN   = 14,
 } SRxProxyPDUType;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +204,19 @@ typedef struct {
   uint32_t  zero32;
   uint32_t  length;            // 12 Bytes
 } __attribute__((packed)) SRXPROXY_GOODBYE;
+
+
+#define SKI_LENGTH 20
+#define SIG_MAX_LEN 72  // usually 70-72 for ECDSA P-256
+
+typedef struct {
+  uint8_t   type;              // Message type
+  uint32_t  zero32;            // Always zero
+  uint32_t  length;            // Total length of the structure (dynamic)
+  uint8_t   ski[SKI_LENGTH];   // Subject Key Identifier (20 bytes)
+  uint16_t  sigLen;            // Signature length
+  uint8_t   signature[SIG_MAX_LEN]; // DER-encoded ECDSA signature
+} __attribute__((packed)) SRXPROXY_SIGNATURE;
 
 typedef struct {
   uint32_t  local_as;

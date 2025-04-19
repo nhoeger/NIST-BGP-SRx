@@ -192,7 +192,7 @@ typedef struct {
   uint8_t roaResult;
   uint8_t bgpsecResult;
   uint8_t aspaResult;
-  uint8_t transitiveResult
+  uint8_t transitiveResult;
 } SRxResult;
 
 /** This struct contains the validation result. */
