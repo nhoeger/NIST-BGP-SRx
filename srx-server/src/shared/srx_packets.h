@@ -77,7 +77,6 @@
 /** Flags Bits  */
 #define SRX_PROXY_FLAGS_VERIFY_PREFIX_ORIGIN   1
 #define SRX_PROXY_FLAGS_VERIFY_PATH            2
-#define SRX_PROXY_FLAGS_VERIFY_TRANSITIVE      4
 #define SRX_PROXY_FLAGS_VERIFY_ASPA            8
 #define SRX_PROXY_FLAGS_VERIFY_RECEIPT       128
 
@@ -121,7 +120,8 @@ typedef enum {
   PDU_SRXPROXY_ERROR             = 11,
   PDU_SRXPROXY_UNKNOWN           = 12,    // NOT IN SPEC
   PDU_SRXPROXY_REGISTER_SKI      = 13,
-  PDU_SRXPROXY_TRANISITVE_SIGN   = 14,
+  PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST = 14,
+  PDU_SRXPROXY_SIGTRA_VALIDATION_REQUEST = 15,
 } SRxProxyPDUType;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,18 +206,6 @@ typedef struct {
 } __attribute__((packed)) SRXPROXY_GOODBYE;
 
 
-#define SKI_LENGTH 20
-#define SIG_MAX_LEN 72  // usually 70-72 for ECDSA P-256
-
-typedef struct {
-  uint8_t   type;              // Message type
-  uint32_t  zero32;            // Always zero
-  uint32_t  length;            // Total length of the structure (dynamic)
-  uint8_t   ski[SKI_LENGTH];   // Subject Key Identifier (20 bytes)
-  uint16_t  sigLen;            // Signature length
-  uint8_t   signature[SIG_MAX_LEN]; // DER-encoded ECDSA signature
-} __attribute__((packed)) SRXPROXY_SIGNATURE;
-
 typedef struct {
   uint32_t  local_as;
 } BGPSEC_DATA_PTR;
@@ -264,7 +252,6 @@ typedef struct {
   uint8_t       flags;
   uint8_t       roaResSrc;
   uint8_t       bgpsecResSrc;
-  uint8_t       tranResSrc;
   uint8_t       aspaResSrc;   // reserved for ASPA validation
   uint8_t       reserved8;
   uint8_t       asType;
@@ -300,19 +287,7 @@ typedef struct {
   BGPSECValReqData bgpsecValReqData;
 } __attribute__((packed)) SRXPROXY_VERIFY_V6_REQUEST;
 
-/**
- * This struct specifies the sign request packet
- */
-typedef struct {
-  uint8_t     type;            // 5
-  uint16_t    algorithm;
-  uint8_t     blockType;
-  uint32_t    zero32;
-  uint32_t    length;          // 24 Bytes
-  uint32_t    updateIdentifier;
-  uint32_t    prependCounter;
-  uint32_t    peerAS;
-} __attribute__((packed)) SRXPROXY_SIGN_REQUEST;
+
 
 /**
  * This struct specifies the verification notification packet
@@ -390,6 +365,87 @@ typedef struct {
   uint32_t    zero32;
   uint32_t    length;          // 12 Bytes
 } __attribute__((packed)) SRXPROXY_ERROR;
+
+
+/**
+ * This struct specifies the sign request packet
+ */
+typedef struct {
+  uint8_t     type;            // 5
+  uint16_t    algorithm;
+  uint8_t     blockType;
+  uint32_t    zero32;
+  uint32_t    length;          // 24 Bytes
+  uint32_t    updateIdentifier;
+  uint32_t    prependCounter;
+  uint32_t    peerAS;
+} __attribute__((packed)) SRXPROXY_SIGN_REQUEST;
+
+
+/**
+ * THE FOLLOWING CODE IS USED FOR TRANSITIVE SIGANTURE GENERATION AND VALIDATION
+ */
+
+
+ // -----------------------------
+// Signature Block Definition
+// -----------------------------
+
+typedef struct {
+  uint8_t     prefixLen;          // Prefix length (CIDR notation)
+  uint8_t     prefix[16];         // IPv4 (first 4 bytes) or IPv6 prefix
+  uint8_t     asPathLen;          // Number of ASNs in the path
+  uint32_t    asPath[16];         // ASN path entries (max 16 for simplicity)
+  uint8_t     pkiIDType;          // 0 = router SKI, 1 = AS-level ID
+  uint8_t     pkiID[20];          // Subject Key Identifier or similar
+  uint64_t    timestamp;          // Unix timestamp (seconds since epoch)
+  uint8_t     signature[64];      // Ed25519 signature
+  uint8_t     otcFlags;           // Optional flags (OTC, ASPA, etc.)
+} __attribute__((packed)) SRXPROXY_SIGTRA_BLOCK;
+
+// -----------------------------
+// Attribute Container Definition
+// -----------------------------
+
+typedef struct {
+	uint8_t         type; 
+	uint32_t        length;     
+  uint8_t         blockCount;           // Number of SignatureBlocks
+  SRXPROXY_SIGTRA_BLOCK  blocks[];             // Flexible array of signature blocks
+} __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_REQUEST;
+
+// Defines the signature reqeust the client makes to the server 
+typedef struct {   
+	uint8_t     type;     
+	uint32_t    length;     
+	uint32_t    signature_identifier;  
+  uint8_t     prefixLen;          // Prefix length (e.g., 24 for 203.0.113.0/24)  
+  uint8_t     prefix[16];         // Support both IPv4 (first 4 bytes) and IPv6  
+  uint8_t     asPathLen;          // Number of ASNs in the path  
+  uint32_t    asPath[16];         // Sequence of ASNs (up to 16 ASNs)  
+  uint8_t     pkiIDType;          // 0 = router ID, 1 = AS ID  
+  uint8_t     pkiID[20];          // SHA-1 (SKI) or similar ID length  
+  uint64_t    timestamp;          // Unix time or other timestamp format  
+  uint8_t     otcFlags;           // 1 byte for OTC indication 
+  uint8_t     peerCount;          // Number of Peers the message should be forwarded to 
+  uint32_t    peers[16];          // Sequence of Peer to send to (up to 16 ASNs)  
+  
+} __attribute__((packed)) SRXPROXY_SIGTRA_GENERATION_REQUEST;
+
+typedef struct {   
+	uint8_t     type;     
+	uint32_t    length;     
+	uint32_t    signature_identifier;  
+  uint8_t     valid;           // 1 byte for OTC indication 
+} __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
+
+typedef struct {  
+	uint8_t     type;     
+	uint32_t    length;        
+	uint32_t    signature_identifier;  
+	uint8_t     signature[64];    
+	uint64_t    timestamp;
+} __attribute__((packed)) SRXPROXY_SIGTRA_SIGNATURE_RESPONSE;
 
 /**
  * Returns a string corresponding to the given \c type.

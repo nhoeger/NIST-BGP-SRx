@@ -471,8 +471,9 @@ bool sendHelloResponse(ServerSocket* srvSoc, ServerClient* client,
  */
 bool sendTransitiveSignature(ServerSocket* srvSoc, ServerClient* client)
 {
-  printf("Trying to send stuff");
-bool retVal = true;
+  printf("Trying to send stuff"); 
+  bool retVal = true;/*
+
 
 // === Replace with your actual SKI and signature ===
 uint8_t ski[20] = {
@@ -515,7 +516,7 @@ printf("Here should be an error\n");
 retVal = false;
 }
 printf("Return value: %d\n", retVal);
-free(pdu);
+free(pdu);*/
 return retVal;
 }
 
@@ -568,8 +569,7 @@ bool sendVerifyNotification(ServerSocket* srvSoc, ServerClient* client,
                             SRxUpdateID updateID, uint8_t resultType,
                             uint32_t requestToken,
                             uint8_t roaResult, uint8_t bgpsecResult, 
-                            uint8_t aspaResult, uint8_t transitiveResult, 
-                            bool useQueue, bool sendSignature)
+                            uint8_t aspaResult, bool useQueue)
 {
   bool retVal = true;
   uint32_t length = sizeof(SRXPROXY_VERIFY_NOTIFICATION);

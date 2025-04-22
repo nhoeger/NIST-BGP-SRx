@@ -837,13 +837,12 @@ bool processValidationRequest(ServerConnectionHandler* self,
     {
       sendFlags = sendFlags | SRX_FLAG_ASPA;
     }
-    // TODO: Add tranisitve stuff in here
+    
     // Now send the results we know so far;
     if (!sendVerifyNotification(svrSock, client, updateID, sendFlags,
                                 requestToken, srxRes.roaResult,
                                 srxRes.bgpsecResult, srxRes.aspaResult,
-                                srxRes.transitiveResult,!self->sysConfig->mode_no_sendqueue,
-                              true))
+                                !self->sysConfig->mode_no_sendqueue))
     {
       RAISE_ERROR("Could not send the initial verify notification for update"
         "[0x%08X] to client [0x%02X]!", updateID, client->routerID);
@@ -871,6 +870,47 @@ bool processValidationRequest(ServerConnectionHandler* self,
   }
 
   LOG(LEVEL_DEBUG, HDR "Exit processValidationRequest", pthread_self());
+  return retVal;
+}
+
+bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block){
+  return true; // Placeholder for actual validation logic
+}
+
+
+static bool processSigtraValidationRequest(ServerConnectionHandler* self,
+                              ServerSocket* svrSock, ClientThread* client,
+                              SRXPROXY_SIGTRA_VALIDATION_REQUEST* hdr)
+{
+  LOG(LEVEL_INFO, HDR "Enter processSigtraValidationRequest", pthread_self());
+  bool retVal = true;
+
+  // Pointer math to get first block
+  uint8_t* raw = (uint8_t*)hdr;
+  SRXPROXY_SIGTRA_BLOCK* blocks = (SRXPROXY_SIGTRA_BLOCK*)(raw + sizeof(SRXPROXY_SIGTRA_VALIDATION_REQUEST));
+  uint8_t count = hdr->blockCount;
+
+  for (uint8_t i = 0; i < count; i++)
+  {
+    SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
+
+    LOG(LEVEL_INFO, HDR "Validating signature block %d/%d (prefixLen: %u, AS path len: %u)", 
+        pthread_self(), i + 1, count, block->prefixLen, block->asPathLen);
+
+    bool valid = validateSignatureBlock(block);
+    if (!valid)
+    {
+      LOG(LEVEL_INFO, HDR "Signature block %d is INVALID", pthread_self(), i);
+      retVal = false; // mark as partial or full failure
+    }
+    else
+    {
+      LOG(LEVEL_INFO, HDR "Signature block %d is valid", pthread_self(), i);
+    }
+  }
+
+  // TODO: Construct and send a result message back to the client if needed.
+
   return retVal;
 }
 
@@ -1045,6 +1085,14 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
           // TODO implement
         }
       break;
+      case PDU_SRXPROXY_SIGTRA_VALIDATION_REQUEST:
+        processSigtraValidationRequest(self, svrSock, client,
+                                     (SRXPROXY_SIGTRA_VALIDATION_REQUEST*)packet);
+        LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA__VALIDATION_REQUEST");
+      break;
+      case PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST:
+        LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST");
+      break;  
       case PDU_SRXPROXY_SIGN_REQUEST:
         if (!clientThread->initialized)
         {
@@ -1123,6 +1171,7 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
           }
           clientThread->goodByeReceived = true;
         }
+
       // else continue with the default behavior
       default:
         if (bhdr->type <= PDU_SRXPROXY_UNKNOWN)
