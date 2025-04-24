@@ -58,7 +58,10 @@ static const char* PACKET_TYPES[PDU_SRXPROXY_UNKNOWN + 1] = {
   "Signature_Notification",
   "Error",
   "Register_SKI",
-  "Unknown"
+  "Unknown",
+  "Register Ski",
+  "Sigtra Generation Request",
+  "Sigtra Validation Request",
 };
 
 /**

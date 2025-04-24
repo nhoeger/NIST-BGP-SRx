@@ -880,16 +880,17 @@ bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block){
 
 static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                               ServerSocket* svrSock, ClientThread* client,
-                              SRXPROXY_SIGTRA_VALIDATION_REQUEST* hdr)
+                              SRXPROXY_SIGTRA_VALIDATION_REQUEST* validation_request)
 {
-  LOG(LEVEL_INFO, HDR "Enter processSigtraValidationRequest", pthread_self());
+  LOG(LEVEL_INFO, HDR "+--------------------processSigtraValidationRequest---------------------+", pthread_self());
+  
   bool retVal = true;
 
   // Pointer math to get first block
-  uint8_t* raw = (uint8_t*)hdr;
+  uint8_t* raw = (uint8_t*)validation_request;
   SRXPROXY_SIGTRA_BLOCK* blocks = (SRXPROXY_SIGTRA_BLOCK*)(raw + sizeof(SRXPROXY_SIGTRA_VALIDATION_REQUEST));
-  uint8_t count = hdr->blockCount;
-
+  uint8_t count = validation_request->blockCount;
+  uint32_t identifier = ntohl(validation_request->signature_identifier);
   for (uint8_t i = 0; i < count; i++)
   {
     SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
@@ -901,16 +902,17 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
     if (!valid)
     {
       LOG(LEVEL_INFO, HDR "Signature block %d is INVALID", pthread_self(), i);
-      retVal = false; // mark as partial or full failure
+      retVal = false; 
     }
     else
     {
       LOG(LEVEL_INFO, HDR "Signature block %d is valid", pthread_self(), i);
     }
   }
-
-  // TODO: Construct and send a result message back to the client if needed.
-
+  if (!sendSigtraResult(svrSock, client, retVal, false, identifier)) {
+    LOG(LEVEL_ERROR, HDR "Failed to send signature validation result");
+    retVal = false;
+  }
   return retVal;
 }
 
@@ -1086,9 +1088,10 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
         }
       break;
       case PDU_SRXPROXY_SIGTRA_VALIDATION_REQUEST:
-        processSigtraValidationRequest(self, svrSock, client,
-                                     (SRXPROXY_SIGTRA_VALIDATION_REQUEST*)packet);
         LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA__VALIDATION_REQUEST");
+        SRXPROXY_SIGTRA_VALIDATION_REQUEST* valReq = (SRXPROXY_SIGTRA_VALIDATION_REQUEST*)packet;
+        bool val_result = processSigtraValidationRequest(self, svrSock, client, valReq);
+
       break;
       case PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST:
         LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST");
@@ -1226,12 +1229,15 @@ void handlePacket(ServerSocket* svrSock, ServerClient* client,
   // Preparation for receiver queue
   ServerConnectionHandler* handler = (ServerConnectionHandler*)srvConHandler;
   SCH_ReceiverQueue* queue = (SCH_ReceiverQueue*)handler->receiverQueue;
+  LOG(LEVEL_DEBUG, HDR "Enter regular handle packet");
   if (queue == NULL)
   {
+    LOG(LEVEL_DEBUG, HDR "Enter regular handle packet -> if ");
     _handlePacket(svrSock, client, packet, length, srvConHandler);
   }
   else
   {
+    LOG(LEVEL_DEBUG, HDR "Enter regular handle packet -> else ");
     addToSCHReceiverQueue(packet, svrSock, client, length, queue);
   }
 }

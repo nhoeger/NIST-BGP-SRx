@@ -338,6 +338,8 @@ SendPacket* fetchSendPacket()
 bool addToSendQueue(uint8_t* pdu, ServerSocket* srvSoc, ServerClient* client, 
                     size_t size)
 {
+
+  printf("Were in addToSendQueue\n");
   SendPacketQueue* queue = SEND_QUEUE;
   
   SendPacket* packet = malloc(sizeof(SendPacket));
@@ -350,10 +352,12 @@ bool addToSendQueue(uint8_t* pdu, ServerSocket* srvSoc, ServerClient* client,
     packet->pdu = malloc(size);
     if (packet->pdu == NULL)
     {
+      printf("Packet->pdu is NULL\n");
       free(packet);
     }
     else
     {
+      printf("Packet->pdu is NOT NULL\n");
       retVal = true;
       packet->srcSock  = srvSoc;
       packet->client   = client;
@@ -372,6 +376,7 @@ bool addToSendQueue(uint8_t* pdu, ServerSocket* srvSoc, ServerClient* client,
       }
       queue->size++;
       // Signal a new packet is in the queue
+      printf("Signaling condition\n");
       signalCond(&queue->condition);
     }
   }
@@ -408,6 +413,8 @@ bool __sendPacketToClient(ServerSocket* srvSoc, ServerClient* client,
   
   if (!useQueue)
   {
+    printf("We are not using the queue\n");
+    printf("PDU type: %u\n", ((SRXPROXY_BasicHeader*)pdu)->type);
     retVal = sendPacketToClient(srvSoc, client, pdu, size);
   }
   else 
@@ -720,3 +727,21 @@ extern void cb_proxyCallbackHandler_Service(int p0, void* p1);
   return retVal;
 }
 
+/**
+ * Send the resutlts of the signature request to the client. 
+ */
+bool sendSigtraResult(ServerSocket* srvSoc, ServerClient* client,bool result, bool useQueue,
+                      uint32_t signature_identifier){
+  bool retVal = true;
+  uint32_t length = sizeof(SRXPROXY_SIGTRA_VALIDATION_RESPONSE);
+  SRXPROXY_SIGTRA_VALIDATION_RESPONSE* pdu = malloc(length);
+  pdu->type = PDU_SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
+  pdu->length = htonl(length);
+  pdu->signature_identifier = htonl(signature_identifier);
+  pdu->valid = result ? 1 : 0;
+  if (!__sendPacketToClient(srvSoc, client, pdu, length, useQueue))
+  {
+    RAISE_SYS_ERROR("Could not send the error report. Result was: %u", result);
+    retVal = false;
+  }
+}

@@ -100,7 +100,8 @@ bool recvNum(int* fd, void* buffer, size_t num)
                      pthread_self(), *fd, rbytes, num, errno);
     // An error occurred
     if (rbytes == -1)
-    {      
+    {     
+      LOG(LEVEL_DEBUG, "We are in error handling"); 
       int ioError = errno;
       _setLastError(ioError, false);
       if (ioError != EAGAIN)
@@ -131,7 +132,7 @@ bool recvNum(int* fd, void* buffer, size_t num)
       return false;
     }
 
-
+    LOG(LEVEL_DEBUG, "Writing stuff to buffer");
     buffer += rbytes;
     num -= rbytes;
   };

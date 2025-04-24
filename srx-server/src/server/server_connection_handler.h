@@ -206,7 +206,7 @@ bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block);
 
 static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                       ServerSocket* svrSock, ClientThread* client,
-                      SRXPROXY_SIGTRA_VALIDATION_REQUEST* hdr);
+                      SRXPROXY_SIGTRA_VALIDATION_REQUEST* hvalidation_requestdr);
 
 /**
  * Allows to pre-configure the proxy Map. This function performs all mappings 

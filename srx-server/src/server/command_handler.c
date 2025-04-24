@@ -1112,6 +1112,12 @@ static void* handleCommands(void* arg)
             case PDU_SRXPROXY_PEER_CHANGE:
               _processPeerChange(cmdHandler, item);
               break;
+            case PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST:
+              LOG(LEVEL_DEBUG, HDR "Signature generation request received!");
+              break;
+            case PDU_SRXPROXY_SIGTRA_VALIDATION_REQUEST:
+              LOG(LEVEL_DEBUG, HDR "Signature validation request received!");
+              break;
 #ifdef USE_GRPC
             case PDU_SRXPROXY_SYNC_REQUEST:
               LOG(LEVEL_INFO, HDR "[SRx server][handle_commands](Hello Resonse) "

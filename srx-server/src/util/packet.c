@@ -117,6 +117,8 @@ bool receivePackets(int* fdPtr, SRxPacketHandler dispatcher, void* pHandler,
     // Get the data
     if (!recvNum(fdPtr, buffer, basicLength))
     {
+      LOG(LEVEL_DEBUG, HDR "Received a packet but got an error",
+        pthread_self());
       // Just get the error, might not be used though!      
       int error = getLastRecvError();
       keepGoing = false;
@@ -162,8 +164,13 @@ bool receivePackets(int* fdPtr, SRxPacketHandler dispatcher, void* pHandler,
 
     // Data was received!!    
     pduLength = ntohl(hdr->length);
+    LOG(LEVEL_DEBUG, HDR "Length of the current packet is %u bytes",
+      pthread_self(), pduLength);
     if (buffSize < pduLength)
     {
+
+      LOG(LEVEL_DEBUG, HDR "The current packet is Larger than the current buffer size", 
+        pthread_self());
       // The current packet is Larger than the current buffer size
       // - need to resize the buffer
       buffSize = (size_t)pduLength;
@@ -181,7 +188,8 @@ bool receivePackets(int* fdPtr, SRxPacketHandler dispatcher, void* pHandler,
       // might be same address but just in case.
       buffHelper = buffer + basicLength;
     }
-    
+    LOG(LEVEL_DEBUG, HDR "Lets continue", 
+      pthread_self());
     // Determine how much data is missing to complete the packet
     remainder = pduLength - basicLength;
     if (remainder > pduLength)

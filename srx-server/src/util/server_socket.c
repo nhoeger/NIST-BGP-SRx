@@ -185,6 +185,7 @@ static bool single_sendResult(ServerClient* client, void* data, size_t size)
   // Only when still active
   if (clt->active)
   {
+    printf("Still active\n");
     lockMutex(&clt->writeMutex);
     sendData(&clt->clientFD, data, (PacketLength)size);
     unlockMutex(&clt->writeMutex);
@@ -200,6 +201,7 @@ static bool single_sendResult(ServerClient* client, void* data, size_t size)
 #ifdef USE_GRPC
   }
 #endif // USE_GRPC
+  printf("RetVal: %d\n", retVal);
   return retVal;
 }
 
@@ -879,10 +881,20 @@ bool sendPacketToClient(ServerSocket* self, ServerClient* client,
 
   if (self->mode == MODE_SINGLE_CLIENT)
   {
-    return single_sendResult(client, data, size);
+    bool retval = single_sendResult(client, data, size);
+    if (retval == false)
+    {
+      RAISE_ERROR("Failed to send packet to client");
+    }
+    else
+    {
+      printf("Data sent successfully\n");
+    }
+    return retval;
   }
   if (self->mode == MODE_MULTIPLE_CLIENTS)
   {
+    printf("In multi_sendResult\n");
     return multi_sendResult(client, data, size);
   }
   RAISE_ERROR("Cannot send packets in this mode");

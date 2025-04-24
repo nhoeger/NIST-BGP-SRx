@@ -122,6 +122,8 @@ typedef enum {
   PDU_SRXPROXY_REGISTER_SKI      = 13,
   PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST = 14,
   PDU_SRXPROXY_SIGTRA_VALIDATION_REQUEST = 15,
+  PDU_SRXPROXY_SIGTRA_SIGNATURE_RESPONSE = 16,
+  PDU_SRXPROXY_SIGTRA_VALIDATION_RESPONSE = 17,
 } SRxProxyPDUType;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -393,7 +395,7 @@ typedef struct {
 
 typedef struct {
   uint8_t     prefixLen;          // Prefix length (CIDR notation)
-  uint8_t     prefix[16];         // IPv4 (first 4 bytes) or IPv6 prefix
+  uint32_t     prefix[16];         // IPv4 (first 4 bytes) or IPv6 prefix
   uint8_t     asPathLen;          // Number of ASNs in the path
   uint32_t    asPath[16];         // ASN path entries (max 16 for simplicity)
   uint8_t     pkiIDType;          // 0 = router SKI, 1 = AS-level ID
@@ -401,32 +403,46 @@ typedef struct {
   uint64_t    timestamp;          // Unix timestamp (seconds since epoch)
   uint8_t     signature[64];      // Ed25519 signature
   uint8_t     otcFlags;           // Optional flags (OTC, ASPA, etc.)
+  uint16_t    otcField;           // Holds an ASN, only used when Flag is set
 } __attribute__((packed)) SRXPROXY_SIGTRA_BLOCK;
 
 // -----------------------------
 // Attribute Container Definition
 // -----------------------------
 
-typedef struct {
-	uint8_t         type; 
-	uint32_t        length;     
+typedef struct { 
+  // The type of the SRx packet.
+  uint8_t  type;
+  uint16_t reserved16;
+  uint8_t  reserved8;
+  uint32_t reserved32;
+  // The total length of this header in bytes.
+  uint32_t length;
+	uint32_t    signature_identifier;  
   uint8_t         blockCount;           // Number of SignatureBlocks
   SRXPROXY_SIGTRA_BLOCK  blocks[];             // Flexible array of signature blocks
 } __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_REQUEST;
 
 // Defines the signature reqeust the client makes to the server 
-typedef struct {   
-	uint8_t     type;     
-	uint32_t    length;     
+typedef struct {     
+  
+  // The type of the SRx packet.
+  uint8_t  type;
+  uint16_t reserved16;
+  uint8_t  reserved8;
+  uint32_t reserved32;
+  // The total length of this header in bytes.
+  uint32_t length; 
 	uint32_t    signature_identifier;  
   uint8_t     prefixLen;          // Prefix length (e.g., 24 for 203.0.113.0/24)  
-  uint8_t     prefix[16];         // Support both IPv4 (first 4 bytes) and IPv6  
+  uint32_t     prefix;         // Support both IPv4 (first 4 bytes) and IPv6  
   uint8_t     asPathLen;          // Number of ASNs in the path  
   uint32_t    asPath[16];         // Sequence of ASNs (up to 16 ASNs)  
   uint8_t     pkiIDType;          // 0 = router ID, 1 = AS ID  
   uint8_t     pkiID[20];          // SHA-1 (SKI) or similar ID length  
   uint64_t    timestamp;          // Unix time or other timestamp format  
   uint8_t     otcFlags;           // 1 byte for OTC indication 
+  uint16_t    otcField;           // Holds an ASN, only used when Flag is set
   uint8_t     peerCount;          // Number of Peers the message should be forwarded to 
   uint32_t    peers[16];          // Sequence of Peer to send to (up to 16 ASNs)  
   
