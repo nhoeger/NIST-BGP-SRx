@@ -744,4 +744,5 @@ bool sendSigtraResult(ServerSocket* srvSoc, ServerClient* client,bool result, bo
     RAISE_SYS_ERROR("Could not send the error report. Result was: %u", result);
     retVal = false;
   }
+  return retVal;
 }

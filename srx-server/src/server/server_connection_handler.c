@@ -916,6 +916,109 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
   return retVal;
 }
 
+void hexDump(const void* data, size_t size) {
+  const uint8_t* byte = (const uint8_t*)data;
+  for (size_t i = 0; i < size; i += 16) {
+      printf("%04zx: ", i);
+      for (size_t j = 0; j < 16 && i + j < size; j++) {
+          printf("%02x ", byte[i + j]);
+      }
+      printf(" | ");
+      for (size_t j = 0; j < 16 && i + j < size; j++) {
+          char c = byte[i + j];
+          printf("%c", (c >= 32 && c <= 126) ? c : '.');
+      }
+      printf("\n");
+  }
+}
+
+/**
+ * This method processes the signature generation request. For each requested peer,
+ * a signature will be generated and send back to the client. 
+ */
+static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
+                                            ServerSocket* svrSock, ClientThread* client,
+                                            SRXPROXY_SIGTRA_VALIDATION_REQUEST* generation_request) 
+  {
+    
+    LOG(LEVEL_INFO, HDR "Dumping raw packet data:");
+    // hexDump(generation_request, sizeof(SRXPROXY_SIGTRA_GENERATION_REQUEST));
+
+    LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
+    bool retVal = true;
+
+    SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
+
+    // uint32_t signature_id = ntohl(req->signature_identifier);
+    uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
+    uint8_t  prefix_len       = req->prefixLen;
+    uint32_t prefix           = ntohl(req->prefix);
+    uint8_t  as_path_len      = req->asPathLen;
+    uint32_t as_path[16]      = {0};
+    for (int i = 0; i < as_path_len && i < 16; i++) {
+        as_path[i] = ntohl(req->asPath[i]);
+    }
+
+    uint8_t  pki_id_type      = req->pkiIDType;
+    uint8_t  pki_id[20]       = {0};
+    memcpy(pki_id, req->pkiID, sizeof(req->pkiID));
+
+    uint64_t timestamp        = req->timestamp;  // might need byte-order fix if sent over network
+    uint8_t  otc_flags        = req->otcFlags;
+    uint16_t otc_field        = ntohs(req->otcField);
+    uint8_t  peer_count       = req->peerCount;
+    uint32_t peers[16]        = {0};
+    for (int i = 0; i < peer_count && i < 16; i++) {
+        peers[i] = ntohl(req->peers[i]);
+    }
+
+    // ---------- Print All Data ---------- //
+    printf("\n--- Received SRXPROXY_SIGTRA_GENERATION_REQUEST ---\n");
+    printf("Signature ID:    %u (0x%08x)\n", signature_id, signature_id);
+    printf("Prefix Length:   %u\n", prefix_len);
+    printf("Prefix:          %u.%u.%u.%u (raw: 0x%08x)\n",
+          (prefix >> 24) & 0xFF, (prefix >> 16) & 0xFF,
+          (prefix >> 8) & 0xFF, prefix & 0xFF, prefix);
+
+    printf("AS Path Length:  %u\n", as_path_len);
+    for (int i = 0; i < as_path_len && i < 16; i++) {
+        printf("  AS Path[%d]:     %u\n", i, as_path[i]);
+    }
+
+    printf("PKI ID Type:     %u\n", pki_id_type);
+    printf("PKI ID:          ");
+    for (int i = 0; i < 20; i++) {
+        printf("%02x", pki_id[i]);
+    }
+    printf("\n");
+
+    printf("Timestamp:       %lu\n", timestamp);
+    printf("OTC Flags:       %u\n", otc_flags);
+    printf("OTC Field:       %u\n", otc_field);
+
+    printf("Peer Count:      %u\n", peer_count);
+    for (int i = 0; i < peer_count && i < 16; i++) {
+        printf("  Peer[%d]:        %u\n", i, peers[i]);
+    }
+    printf("---------------------------------------------------\n\n");
+    
+    
+    
+    
+    
+    
+    // Print as hexadecimal
+    //printf("Signature ID (hex): 0x%08x\n", signature_id);
+
+    // Print as decimal
+    //printf("Signature ID (decimal): %u\n", signature_id);
+    
+
+    return retVal;
+  }
+
+
+
 /**
  * This method processes the validation result request. This method is called by
  * the packet handler and if necessary the request will be added to the command
@@ -1095,6 +1198,8 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
       break;
       case PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST:
         LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST");
+        SRXPROXY_SIGTRA_GENERATION_REQUEST* genReq = (SRXPROXY_SIGTRA_GENERATION_REQUEST*)packet;
+        bool gen_result = processSigtraGenerationRequest(self, svrSock, client, genReq);
       break;  
       case PDU_SRXPROXY_SIGN_REQUEST:
         if (!clientThread->initialized)

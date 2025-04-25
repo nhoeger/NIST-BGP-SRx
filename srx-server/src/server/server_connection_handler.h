@@ -208,6 +208,11 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                       ServerSocket* svrSock, ClientThread* client,
                       SRXPROXY_SIGTRA_VALIDATION_REQUEST* hvalidation_requestdr);
 
+void hexDump(const void* data, size_t size);
+static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
+                      ServerSocket* svrSock, ClientThread* client,
+                      SRXPROXY_SIGTRA_VALIDATION_REQUEST* hvalidation_requestdr);
+
 /**
  * Allows to pre-configure the proxy Map. This function performs all mappings 
  * or none.
