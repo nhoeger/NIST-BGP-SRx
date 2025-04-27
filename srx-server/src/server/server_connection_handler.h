@@ -207,7 +207,7 @@ bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block);
 static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                       ServerSocket* svrSock, ClientThread* client,
                       SRXPROXY_SIGTRA_VALIDATION_REQUEST* hvalidation_requestdr);
-
+//EC_KEY* generateTestKey();
 void hexDump(const void* data, size_t size);
 static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
                       ServerSocket* svrSock, ClientThread* client,

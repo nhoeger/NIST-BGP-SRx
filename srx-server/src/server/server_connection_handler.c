@@ -65,7 +65,14 @@
 
 #include <stdio.h>
 #include <stdint.h>
-
+#include <openssl/evp.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/sha.h>
+#include <openssl/obj_mac.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "util/log.h"
 #include "server/server_connection_handler.h"
 #include "server/srx_packet_sender.h"
@@ -932,6 +939,57 @@ void hexDump(const void* data, size_t size) {
   }
 }
 
+
+// helper stuct to hold the signature input
+typedef struct {
+  uint8_t  otcFlag;       // 1 byte
+  uint32_t prevASN;       // 4 bytes
+  uint32_t currentASN;    // 4 bytes
+  uint32_t nextASN;       // 4 bytes
+} SignatureInput;
+
+
+bool signBGPMessageP256(const SignatureInput* input, EC_KEY* ecKey, uint8_t* signature, unsigned int* sigLen)
+{
+    if (!input || !ecKey || !signature || !sigLen) return false;
+
+    uint8_t message[13];  // 1 + 4 + 4 + 4 = 13 bytes
+
+    // Build the message
+    message[0] = input->otcFlag;
+    memcpy(message + 1, &input->prevASN, sizeof(uint32_t));
+    memcpy(message + 5, &input->currentASN, sizeof(uint32_t));
+    memcpy(message + 9, &input->nextASN, sizeof(uint32_t));
+
+    // --- Step 1: Hash the message with SHA-256 ---
+    uint8_t hash[SHA256_DIGEST_LENGTH];
+    SHA256(message, sizeof(message), hash);
+
+    // --- Step 2: Sign the hash using ECDSA ---
+    *sigLen = ECDSA_size(ecKey);  // Max signature size
+    if (ECDSA_sign(0, hash, sizeof(hash), signature, sigLen, ecKey) != 1) {
+        fprintf(stderr, "Error signing ECDSA\n");
+        return false;
+    }
+
+    return true;
+}
+
+
+// --- Helper to generate EC Key (for testing) ---
+
+EC_KEY* generateTestKey()
+{
+    EC_KEY* key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);  // secp256r1
+    if (!key) return NULL;
+
+    if (EC_KEY_generate_key(key) != 1) {
+        EC_KEY_free(key);
+        return NULL;
+    }
+    return key;
+}
+
 /**
  * This method processes the signature generation request. For each requested peer,
  * a signature will be generated and send back to the client. 
@@ -1002,17 +1060,34 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
     printf("---------------------------------------------------\n\n");
     
-    
-    
-    
-    
-    
-    // Print as hexadecimal
-    //printf("Signature ID (hex): 0x%08x\n", signature_id);
+    SignatureInput input = {
+        .otcFlag = otc_flags,
+        .prevASN = 65001,  // Placeholder for previous ASN
+        .currentASN = 65002,  // Using prefix as current ASN for this example
+        .nextASN = 65003   // Placeholder for next ASN
+    };
+    // Create test key (in real-world, load your AS's key)
+    EC_KEY* ecKey = generateTestKey();
+    if (!ecKey) {
+      fprintf(stderr, "Failed to generate EC key\n");
+      return 1;
+    }
 
-    // Print as decimal
-    //printf("Signature ID (decimal): %u\n", signature_id);
-    
+    uint8_t signature[72];  // ECDSA sig max ~72 bytes (depends on r, s size)
+    unsigned int sigLen = 0;
+
+    if (signBGPMessageP256(&input, ecKey, signature, &sigLen)) {
+        printf("Signature generated successfully! Signature length = %u bytes\n", sigLen);
+
+        printf("Signature (hex): ");
+        for (unsigned int i = 0; i < sigLen; ++i)
+            printf("%02X", signature[i]);
+        printf("\n");
+    } else {
+        fprintf(stderr, "Failed to generate signature\n");
+    }
+
+    EC_KEY_free(ecKey);
 
     return retVal;
   }

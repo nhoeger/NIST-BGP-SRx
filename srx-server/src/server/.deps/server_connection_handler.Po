@@ -27,24 +27,26 @@ server/server_connection_handler.o: server/server_connection_handler.c \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-least.h util/log.h \
- /usr/include/string.h \
- /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
- /usr/include/strings.h /usr/include/errno.h \
- /usr/include/x86_64-linux-gnu/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/x86_64-linux-gnu/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- server/server_connection_handler.h server/configuration.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h config.h \
- server/command_queue.h shared/srx_defs.h shared/srx_packets.h \
- /usr/include/unistd.h /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
- /usr/include/x86_64-linux-gnu/bits/environments.h \
- /usr/include/x86_64-linux-gnu/bits/confname.h \
- /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
- /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
- /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
- /home/nils/Dokumente/ASPA+/NIST-BGP-SRx/local-6.3.3/include/srx/srxcryptoapi.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
+ /usr/include/openssl/evp.h /usr/include/openssl/macros.h \
+ /usr/include/x86_64-linux-gnu/openssl/opensslconf.h \
+ /usr/include/x86_64-linux-gnu/openssl/configuration.h \
+ /usr/include/openssl/opensslv.h /usr/include/openssl/types.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h \
+ /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/local_lim.h \
+ /usr/include/linux/limits.h \
+ /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
+ /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
+ /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
+ /usr/include/openssl/e_os2.h /usr/include/inttypes.h \
+ /usr/include/openssl/safestack.h /usr/include/openssl/stack.h \
+ /usr/include/openssl/core.h /usr/include/openssl/core_dispatch.h \
+ /usr/include/openssl/symhacks.h /usr/include/openssl/bio.h \
+ /usr/include/openssl/crypto.h /usr/include/stdlib.h \
+ /usr/include/x86_64-linux-gnu/bits/waitflags.h \
+ /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
  /usr/include/x86_64-linux-gnu/sys/types.h \
  /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
@@ -65,16 +67,42 @@ server/server_connection_handler.o: server/server_connection_handler.c \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
  /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h \
  /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
- /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h \
- /usr/include/x86_64-linux-gnu/sys/param.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h \
- /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
- /usr/include/x86_64-linux-gnu/bits/local_lim.h \
- /usr/include/linux/limits.h \
- /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
- /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
- /usr/include/x86_64-linux-gnu/bits/posix2_lim.h /usr/include/signal.h \
+ /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-float.h /usr/include/time.h \
+ /usr/include/x86_64-linux-gnu/bits/time.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
+ /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
+ /usr/include/openssl/cryptoerr.h /usr/include/openssl/cryptoerr_legacy.h \
+ /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h \
+ /usr/include/x86_64-linux-gnu/bits/cpu-set.h \
+ /usr/include/x86_64-linux-gnu/bits/setjmp.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/openssl/bioerr.h /usr/include/openssl/evperr.h \
+ /usr/include/openssl/params.h /usr/include/openssl/bn.h \
+ /usr/include/openssl/bnerr.h /usr/include/openssl/objects.h \
+ /usr/include/openssl/obj_mac.h /usr/include/openssl/asn1.h \
+ /usr/include/openssl/asn1err.h /usr/include/openssl/objectserr.h \
+ /usr/include/openssl/ec.h /usr/include/string.h /usr/include/strings.h \
+ /usr/include/openssl/ecerr.h /usr/include/openssl/ecdsa.h \
+ /usr/include/openssl/sha.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h util/log.h \
+ /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ server/server_connection_handler.h server/configuration.h config.h \
+ server/command_queue.h shared/srx_defs.h shared/srx_packets.h \
+ /usr/include/unistd.h /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
+ /usr/include/x86_64-linux-gnu/bits/environments.h \
+ /usr/include/x86_64-linux-gnu/bits/confname.h \
+ /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
+ /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
+ /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
+ /home/nils/Dokumente/ASPA+/NIST-BGP-SRx/local-6.3.3/include/srx/srxcryptoapi.h \
+ /usr/include/x86_64-linux-gnu/sys/param.h /usr/include/signal.h \
  /usr/include/x86_64-linux-gnu/bits/signum-generic.h \
  /usr/include/x86_64-linux-gnu/bits/signum-arch.h \
  /usr/include/x86_64-linux-gnu/bits/types/sig_atomic_t.h \
@@ -115,20 +143,8 @@ server/server_connection_handler.o: server/server_connection_handler.c \
  /usr/include/asm-generic/sockios.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_osockaddr.h \
  /usr/include/x86_64-linux-gnu/bits/in.h util/prefix.h util/mutex.h \
- /usr/include/pthread.h /usr/include/sched.h \
- /usr/include/x86_64-linux-gnu/bits/sched.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h \
- /usr/include/x86_64-linux-gnu/bits/cpu-set.h /usr/include/time.h \
- /usr/include/x86_64-linux-gnu/bits/time.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
- /usr/include/x86_64-linux-gnu/bits/setjmp.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
  /usr/include/semaphore.h /usr/include/x86_64-linux-gnu/bits/semaphore.h \
- util/packet.h util/server_socket.h util/slist.h /usr/include/stdlib.h \
- /usr/include/x86_64-linux-gnu/bits/waitflags.h \
- /usr/include/x86_64-linux-gnu/bits/waitstatus.h /usr/include/alloca.h \
- /usr/include/x86_64-linux-gnu/bits/stdlib-float.h server/update_cache.h \
+ util/packet.h util/server_socket.h util/slist.h server/update_cache.h \
  util/rwlock.h server/aspath_cache.h server/aspa_trie.h \
  server/srx_packet_sender.h shared/srx_identifier.h
 /usr/include/stdc-predef.h:
@@ -163,32 +179,33 @@ server/server_connection_handler.o: server/server_connection_handler.c \
 /usr/include/x86_64-linux-gnu/bits/stdint-intn.h:
 /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h:
 /usr/include/x86_64-linux-gnu/bits/stdint-least.h:
-util/log.h:
-/usr/include/string.h:
-/usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
-/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h:
-/usr/include/strings.h:
-/usr/include/errno.h:
-/usr/include/x86_64-linux-gnu/bits/errno.h:
-/usr/include/linux/errno.h:
-/usr/include/x86_64-linux-gnu/asm/errno.h:
-/usr/include/asm-generic/errno.h:
-/usr/include/asm-generic/errno-base.h:
-server/server_connection_handler.h:
-server/configuration.h:
-/usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h:
-config.h:
-server/command_queue.h:
-shared/srx_defs.h:
-shared/srx_packets.h:
-/usr/include/unistd.h:
-/usr/include/x86_64-linux-gnu/bits/posix_opt.h:
-/usr/include/x86_64-linux-gnu/bits/environments.h:
-/usr/include/x86_64-linux-gnu/bits/confname.h:
-/usr/include/x86_64-linux-gnu/bits/getopt_posix.h:
-/usr/include/x86_64-linux-gnu/bits/getopt_core.h:
-/usr/include/x86_64-linux-gnu/bits/unistd_ext.h:
-/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/local-6.3.3/include/srx/srxcryptoapi.h:
+/usr/include/openssl/evp.h:
+/usr/include/openssl/macros.h:
+/usr/include/x86_64-linux-gnu/openssl/opensslconf.h:
+/usr/include/x86_64-linux-gnu/openssl/configuration.h:
+/usr/include/openssl/opensslv.h:
+/usr/include/openssl/types.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h:
+/usr/include/limits.h:
+/usr/include/x86_64-linux-gnu/bits/posix1_lim.h:
+/usr/include/x86_64-linux-gnu/bits/local_lim.h:
+/usr/include/linux/limits.h:
+/usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h:
+/usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h:
+/usr/include/x86_64-linux-gnu/bits/posix2_lim.h:
+/usr/include/openssl/e_os2.h:
+/usr/include/inttypes.h:
+/usr/include/openssl/safestack.h:
+/usr/include/openssl/stack.h:
+/usr/include/openssl/core.h:
+/usr/include/openssl/core_dispatch.h:
+/usr/include/openssl/symhacks.h:
+/usr/include/openssl/bio.h:
+/usr/include/openssl/crypto.h:
+/usr/include/stdlib.h:
+/usr/include/x86_64-linux-gnu/bits/waitflags.h:
+/usr/include/x86_64-linux-gnu/bits/waitstatus.h:
 /usr/include/x86_64-linux-gnu/sys/types.h:
 /usr/include/x86_64-linux-gnu/bits/types/clock_t.h:
 /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h:
@@ -211,16 +228,62 @@ shared/srx_packets.h:
 /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h:
 /usr/include/x86_64-linux-gnu/bits/struct_mutex.h:
 /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h:
+/usr/include/alloca.h:
+/usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
+/usr/include/time.h:
+/usr/include/x86_64-linux-gnu/bits/time.h:
+/usr/include/x86_64-linux-gnu/bits/types/struct_tm.h:
+/usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
+/usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
+/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h:
+/usr/include/openssl/cryptoerr.h:
+/usr/include/openssl/cryptoerr_legacy.h:
+/usr/include/pthread.h:
+/usr/include/sched.h:
+/usr/include/x86_64-linux-gnu/bits/sched.h:
+/usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h:
+/usr/include/x86_64-linux-gnu/bits/cpu-set.h:
+/usr/include/x86_64-linux-gnu/bits/setjmp.h:
+/usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h:
+/usr/include/openssl/bioerr.h:
+/usr/include/openssl/evperr.h:
+/usr/include/openssl/params.h:
+/usr/include/openssl/bn.h:
+/usr/include/openssl/bnerr.h:
+/usr/include/openssl/objects.h:
+/usr/include/openssl/obj_mac.h:
+/usr/include/openssl/asn1.h:
+/usr/include/openssl/asn1err.h:
+/usr/include/openssl/objectserr.h:
+/usr/include/openssl/ec.h:
+/usr/include/string.h:
+/usr/include/strings.h:
+/usr/include/openssl/ecerr.h:
+/usr/include/openssl/ecdsa.h:
+/usr/include/openssl/sha.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h:
+util/log.h:
+/usr/include/errno.h:
+/usr/include/x86_64-linux-gnu/bits/errno.h:
+/usr/include/linux/errno.h:
+/usr/include/x86_64-linux-gnu/asm/errno.h:
+/usr/include/asm-generic/errno.h:
+/usr/include/asm-generic/errno-base.h:
+server/server_connection_handler.h:
+server/configuration.h:
+config.h:
+server/command_queue.h:
+shared/srx_defs.h:
+shared/srx_packets.h:
+/usr/include/unistd.h:
+/usr/include/x86_64-linux-gnu/bits/posix_opt.h:
+/usr/include/x86_64-linux-gnu/bits/environments.h:
+/usr/include/x86_64-linux-gnu/bits/confname.h:
+/usr/include/x86_64-linux-gnu/bits/getopt_posix.h:
+/usr/include/x86_64-linux-gnu/bits/getopt_core.h:
+/usr/include/x86_64-linux-gnu/bits/unistd_ext.h:
+/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/local-6.3.3/include/srx/srxcryptoapi.h:
 /usr/include/x86_64-linux-gnu/sys/param.h:
-/usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h:
-/usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h:
-/usr/include/limits.h:
-/usr/include/x86_64-linux-gnu/bits/posix1_lim.h:
-/usr/include/x86_64-linux-gnu/bits/local_lim.h:
-/usr/include/linux/limits.h:
-/usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h:
-/usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h:
-/usr/include/x86_64-linux-gnu/bits/posix2_lim.h:
 /usr/include/signal.h:
 /usr/include/x86_64-linux-gnu/bits/signum-generic.h:
 /usr/include/x86_64-linux-gnu/bits/signum-arch.h:
@@ -267,27 +330,11 @@ shared/srx_packets.h:
 /usr/include/x86_64-linux-gnu/bits/in.h:
 util/prefix.h:
 util/mutex.h:
-/usr/include/pthread.h:
-/usr/include/sched.h:
-/usr/include/x86_64-linux-gnu/bits/sched.h:
-/usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h:
-/usr/include/x86_64-linux-gnu/bits/cpu-set.h:
-/usr/include/time.h:
-/usr/include/x86_64-linux-gnu/bits/time.h:
-/usr/include/x86_64-linux-gnu/bits/types/struct_tm.h:
-/usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
-/usr/include/x86_64-linux-gnu/bits/setjmp.h:
-/usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h:
 /usr/include/semaphore.h:
 /usr/include/x86_64-linux-gnu/bits/semaphore.h:
 util/packet.h:
 util/server_socket.h:
 util/slist.h:
-/usr/include/stdlib.h:
-/usr/include/x86_64-linux-gnu/bits/waitflags.h:
-/usr/include/x86_64-linux-gnu/bits/waitstatus.h:
-/usr/include/alloca.h:
-/usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 server/update_cache.h:
 util/rwlock.h:
 server/aspath_cache.h:

@@ -703,7 +703,8 @@ srx_server_SOURCES = $(SERVER_DIR)/bgpsec_handler.c \
 
 srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 		   libsrx_shared.la \
-		   libsrx_util.la
+		   libsrx_util.la \
+		   -lcrypto
 
 #srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 #		   libsrx_shared.la \
