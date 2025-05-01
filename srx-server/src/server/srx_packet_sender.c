@@ -746,3 +746,23 @@ bool sendSigtraResult(ServerSocket* srvSoc, ServerClient* client,bool result, bo
   }
   return retVal;
 }
+
+/**
+ * Send the resutlts of the signature generation to the client. 
+ */
+bool sendSigtraGeneration(ServerSocket* srvSoc, ServerClient* client,bool result, bool useQueue,
+  uint32_t signature_identifier){
+bool retVal = true;
+uint32_t length = sizeof(SRXPROXY_SIGTRA_VALIDATION_RESPONSE);
+SRXPROXY_SIGTRA_VALIDATION_RESPONSE* pdu = malloc(length);
+pdu->type = PDU_SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
+pdu->length = htonl(length);
+pdu->signature_identifier = htonl(signature_identifier);
+pdu->valid = result ? 1 : 0;
+if (!__sendPacketToClient(srvSoc, client, pdu, length, useQueue))
+{
+RAISE_SYS_ERROR("Could not send the error report. Result was: %u", result);
+retVal = false;
+}
+return retVal;
+}

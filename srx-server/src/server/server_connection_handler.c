@@ -946,6 +946,9 @@ typedef struct {
   uint32_t prevASN;       // 4 bytes
   uint32_t currentASN;    // 4 bytes
   uint32_t nextASN;       // 4 bytes
+  uint32_t timestamp;     // 4 bytes
+  uint8_t  prefixLen;     // 1 byte
+  uint32_t prefix;        // 4 bytes
 } SignatureInput;
 
 
@@ -953,13 +956,16 @@ bool signBGPMessageP256(const SignatureInput* input, EC_KEY* ecKey, uint8_t* sig
 {
     if (!input || !ecKey || !signature || !sigLen) return false;
 
-    uint8_t message[13];  // 1 + 4 + 4 + 4 = 13 bytes
+    uint8_t message[22];  // 1 + 4 + 4 + 4 = 13 bytes
 
     // Build the message
     message[0] = input->otcFlag;
     memcpy(message + 1, &input->prevASN, sizeof(uint32_t));
     memcpy(message + 5, &input->currentASN, sizeof(uint32_t));
     memcpy(message + 9, &input->nextASN, sizeof(uint32_t));
+    memcpy(message + 13, &input->timestamp, sizeof(uint32_t));
+    memcpy(message + 17, &input->prefixLen, sizeof(uint8_t));
+    memcpy(message + 18, &input->prefix, sizeof(uint32_t));
 
     // --- Step 1: Hash the message with SHA-256 ---
     uint8_t hash[SHA256_DIGEST_LENGTH];
@@ -980,9 +986,11 @@ bool signBGPMessageP256(const SignatureInput* input, EC_KEY* ecKey, uint8_t* sig
 
 EC_KEY* generateTestKey()
 {
+    // Generate a new EC key using the secp256r1 curve
     EC_KEY* key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);  // secp256r1
-    if (!key) return NULL;
-
+    if (!key) {
+      return NULL;
+    }
     if (EC_KEY_generate_key(key) != 1) {
         EC_KEY_free(key);
         return NULL;
@@ -990,24 +998,35 @@ EC_KEY* generateTestKey()
     return key;
 }
 
+// -- Helper for timestamp conversion --
+
+uint64_t ntohll(uint64_t value) {
+  #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+      return ((uint64_t)ntohl(value & 0xFFFFFFFF) << 32) | ntohl(value >> 32);
+  #else
+      return value;
+  #endif
+  }
+
 /**
  * This method processes the signature generation request. For each requested peer,
  * a signature will be generated and send back to the client. 
  */
 static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
                                             ServerSocket* svrSock, ClientThread* client,
-                                            SRXPROXY_SIGTRA_VALIDATION_REQUEST* generation_request) 
+                                            SRXPROXY_SIGTRA_GENERATION_REQUEST* generation_request) 
   {
-    
-    LOG(LEVEL_INFO, HDR "Dumping raw packet data:");
+    // LOG(LEVEL_INFO, HDR "Dumping raw packet data:");
     // hexDump(generation_request, sizeof(SRXPROXY_SIGTRA_GENERATION_REQUEST));
+    // printf("Execpted Size: %zu\n", sizeof(SRXPROXY_SIGTRA_GENERATION_REQUEST));
+    // printf("Received Size: %zu\n", ntohl(generation_request->length));
 
     LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
     bool retVal = true;
 
     SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
 
-    // uint32_t signature_id = ntohl(req->signature_identifier);
+    // Extract fields from the request
     uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
     uint8_t  prefix_len       = req->prefixLen;
     uint32_t prefix           = ntohl(req->prefix);
@@ -1018,10 +1037,12 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
 
     uint8_t  pki_id_type      = req->pkiIDType;
-    uint8_t  pki_id[20]       = {0};
-    memcpy(pki_id, req->pkiID, sizeof(req->pkiID));
+    uint8_t pki_id[20]      = {0};
+    for (int i = 0; i < 20; i++) {
+        pki_id[i] = req->pkiID[i];
+    }
 
-    uint64_t timestamp        = req->timestamp;  // might need byte-order fix if sent over network
+    uint32_t timestamp = ntohl(req->timestamp);
     uint8_t  otc_flags        = req->otcFlags;
     uint16_t otc_field        = ntohs(req->otcField);
     uint8_t  peer_count       = req->peerCount;
@@ -1029,6 +1050,8 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     for (int i = 0; i < peer_count && i < 16; i++) {
         peers[i] = ntohl(req->peers[i]);
     }
+
+    uint8_t* ts_bytes = (uint8_t*)&timestamp;
 
     // ---------- Print All Data ---------- //
     printf("\n--- Received SRXPROXY_SIGTRA_GENERATION_REQUEST ---\n");
@@ -1040,17 +1063,19 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
 
     printf("AS Path Length:  %u\n", as_path_len);
     for (int i = 0; i < as_path_len && i < 16; i++) {
-        printf("  AS Path[%d]:     %u\n", i, as_path[i]);
+        printf("  AS Path[%d]:      %u\n", i, as_path[i]);
     }
-
-    printf("PKI ID Type:     %u\n", pki_id_type);
+    printf("Raw PKI Type:    %u\n", pki_id_type);
     printf("PKI ID:          ");
     for (int i = 0; i < 20; i++) {
         printf("%02x", pki_id[i]);
     }
+    /*printf("Raw timestamp bytes: ");
+    for (int i = 3; i >= 0; i--) {
+      printf("%02x", ts_bytes[i]);
+    }*/
     printf("\n");
-
-    printf("Timestamp:       %lu\n", timestamp);
+    printf("Raw Timestamp:   %u\n", ntohl(timestamp));
     printf("OTC Flags:       %u\n", otc_flags);
     printf("OTC Field:       %u\n", otc_field);
 
@@ -1060,35 +1085,64 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
     printf("---------------------------------------------------\n\n");
     
-    SignatureInput input = {
-        .otcFlag = otc_flags,
-        .prevASN = 65001,  // Placeholder for previous ASN
-        .currentASN = 65002,  // Using prefix as current ASN for this example
-        .nextASN = 65003   // Placeholder for next ASN
-    };
     // Create test key (in real-world, load your AS's key)
     EC_KEY* ecKey = generateTestKey();
     if (!ecKey) {
       fprintf(stderr, "Failed to generate EC key\n");
       return 1;
-    }
-
+    }    
     uint8_t signature[72];  // ECDSA sig max ~72 bytes (depends on r, s size)
     unsigned int sigLen = 0;
+    
+    SignatureInput input = {
+      .otcFlag = otc_flags,
+      .prevASN = 65001,  
+      .currentASN = 65002,  
+      .nextASN = 65003,   
+      .timestamp = ntohl(timestamp),
+      .prefixLen = prefix_len,
+      .prefix = prefix
+    };
 
-    if (signBGPMessageP256(&input, ecKey, signature, &sigLen)) {
+    for (int i = 0; i < peer_count && i < 16; i++) {
+      // Change next AS 
+      input.nextASN = peers[i];
+      if (signBGPMessageP256(&input, ecKey, signature, &sigLen)) {
         printf("Signature generated successfully! Signature length = %u bytes\n", sigLen);
 
         printf("Signature (hex): ");
         for (unsigned int i = 0; i < sigLen; ++i)
             printf("%02X", signature[i]);
         printf("\n");
-    } else {
-        fprintf(stderr, "Failed to generate signature\n");
+
+        uint32_t length = sizeof(SRXPROXY_SIGTRA_SIGNATURE_RESPONSE);
+        SRXPROXY_SIGTRA_SIGNATURE_RESPONSE* pdu = malloc(length);
+        pdu->type = PDU_SRXPROXY_SIGTRA_SIGNATURE_RESPONSE;
+        pdu->length = htonl(length);
+        pdu->signature_identifier = htonl(signature_id);
+        memset(pdu->signature, 0, sizeof(pdu->signature));
+        if (sigLen <= sizeof(pdu->signature)) {
+            memcpy(pdu->signature, signature, sigLen);
+        } else {
+            fprintf(stderr, "Signature too long to store in response packet!\n");
+            continue;
+        }
+        bool useQueue = self->sysConfig->mode_no_sendqueue ? false : true;
+        if (!__sendPacketToClient(svrSock, client, pdu, length, useQueue))
+        {
+          fprintf(stderr, "Failed to send signature response\n");
+          retVal = false;
+        } else {
+          printf("Signature sent to client successfully!\n");
+        }
+      } else {
+          fprintf(stderr, "Failed to generate signature\n");
+      }
     }
 
     EC_KEY_free(ecKey);
-
+    printf("Done with Key free\n");
+    printf("Sending signature back to client...\n");
     return retVal;
   }
 
