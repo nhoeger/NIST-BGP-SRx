@@ -90,6 +90,8 @@ typedef struct {
   bool                  verbose;
   /** The level of verbose output (see log levels)*/
   int                   loglevel;
+  char*                privateKey;
+  char*                publicKey;
   /** Where should all messages go (default: MSG_DEST_STDERR) */
   MessagesDestination   msgDest;
   /** Send a synchronization request each time after a proxy connection is

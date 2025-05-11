@@ -140,6 +140,9 @@ static const struct option _LONG_OPTIONS[] = {
   { "help",         no_argument, NULL, 'h'},
   { "config",       required_argument, NULL, 'f'},
 
+  { "privateKey", no_argument, NULL, 'k'},
+  { "publicKey",  no_argument, NULL, 'K'},
+
   { "credits",      no_argument, NULL, CFG_PARAM_CREDITS},
 
   { "verbose",      no_argument, NULL, 'v'},
@@ -235,6 +238,8 @@ void initConfiguration(Configuration* self)
   self->syncAfterConnEstablished = false;
   self->msgDest = MSG_DEST_STDERR;
   self->msgDestFilename = NULL;
+  self->privateKey = NULL;
+  self->publicKey  = NULL;
 
   self->server_port      = SRX_DEF_PORT;
   self->console_port     = SRX_DEF_CONSOLE_PORT;
@@ -665,6 +670,30 @@ bool readConfigFile(Configuration* self, const char* filename)
       LOG(LEVEL_ERROR, "Invalid log value [%i] specified!", intVal);
       goto free_config;      
     }
+  }
+
+  if (config_lookup_string(&cfg, "privateKey", &strtmp) == CONFIG_TRUE)
+  {
+    self->privateKey = _duplicateString((char*)strtmp, &self->privateKey,
+                                        "Private key"); 
+    if (self->privateKey == NULL)
+    {
+      RAISE_ERROR("Could not set private key.");
+      goto free_config;
+    }
+    printf("Private key: %s\n", self->privateKey);
+  }
+
+  if (config_lookup_string(&cfg, "publicKey", &strtmp) == CONFIG_TRUE)
+  {
+    self->publicKey = _duplicateString((char*)strtmp, &self->publicKey,
+                                       "Public key");
+    if (self->publicKey == NULL)
+    {
+      RAISE_ERROR("Could not set public key.");
+      goto free_config;
+    }
+    printf("Public key: %s\n", self->publicKey);
   }
 
   if (config_lookup_string(&cfg, "log", &strtmp) == CONFIG_TRUE)
