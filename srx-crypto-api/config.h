@@ -17,7 +17,7 @@
 #define HAVE_LIBCONFIG_H 1
 
 /* Define to 1 if you have the <ltdl.h> header file. */
-#define HAVE_LTDL_H 1
+/* #undef HAVE_LTDL_H */
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
@@ -25,6 +25,9 @@
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #define HAVE_MALLOC_H 1
+
+/* Define to 1 if you have the <memory.h> header file. */
+#define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `memset' function. */
 #define HAVE_MEMSET 1
@@ -95,13 +98,11 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "0.3.0.6"
 
-/* Define to 1 if all of the C90 standard headers exist (not just the ones
-   required in a freestanding environment). This macro is provided for
-   backward compatibility; new code need not use it. */
+/* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* enable ltdl preload symbol */
-#define USE_PRELOAD_SYMBOL /**/
+/* #undef USE_PRELOAD_SYMBOL */
 
 /* Version number of package */
 #define VERSION "0.3.0.6"

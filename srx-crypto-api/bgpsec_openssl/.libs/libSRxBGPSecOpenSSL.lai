@@ -17,7 +17,7 @@ old_library='libSRxBGPSecOpenSSL.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -lcrypto -lssl -lltdl -lconfig'
+dependency_libs=' -lcrypto -lssl -lconfig -ldl'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/usr/lib64/srx'
+libdir='/home/nils/Dokumente/ASPA/NIST-BGP-SRx/local-6.3.3/lib64/srx'

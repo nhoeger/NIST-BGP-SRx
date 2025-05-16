@@ -49,7 +49,7 @@ using the rtr-to-cache protocol (RFC8210).
 %setup -q
 
 %build
-%configure --prefix=/usr --sysconfdir=/etc sca_dir=/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/local-6.3.3 patricia_dir= 
+%configure --prefix=/usr --sysconfdir=/etc sca_dir=/home/nils/Dokumente/ASPA/NIST-BGP-SRx/local-6.3.3 patricia_dir= 
 make %{?_smp_mflags}
 
 %install
