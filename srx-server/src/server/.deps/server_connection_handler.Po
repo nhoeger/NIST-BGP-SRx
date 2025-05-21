@@ -88,11 +88,21 @@ server/server_connection_handler.o: server/server_connection_handler.c \
  /usr/include/openssl/asn1err.h /usr/include/openssl/objectserr.h \
  /usr/include/openssl/ec.h /usr/include/string.h /usr/include/strings.h \
  /usr/include/openssl/ecerr.h /usr/include/openssl/ecdsa.h \
- /usr/include/openssl/sha.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h util/log.h \
+ /usr/include/openssl/sha.h /usr/include/openssl/pem.h \
+ /usr/include/openssl/x509.h /usr/include/openssl/buffer.h \
+ /usr/include/openssl/buffererr.h /usr/include/openssl/rsa.h \
+ /usr/include/openssl/rsaerr.h /usr/include/openssl/dsa.h \
+ /usr/include/openssl/dh.h /usr/include/openssl/dherr.h \
+ /usr/include/openssl/dsaerr.h /usr/include/openssl/x509err.h \
+ /usr/include/openssl/x509_vfy.h /usr/include/openssl/lhash.h \
+ /usr/include/openssl/pkcs7.h /usr/include/openssl/pkcs7err.h \
+ /usr/include/openssl/http.h /usr/include/openssl/conf.h \
+ /usr/include/openssl/conferr.h /usr/include/openssl/conftypes.h \
+ /usr/include/openssl/pemerr.h /usr/include/openssl/err.h \
  /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h util/log.h \
  server/server_connection_handler.h server/configuration.h config.h \
  server/command_queue.h shared/srx_defs.h shared/srx_packets.h \
  /usr/include/unistd.h /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
@@ -261,14 +271,35 @@ server/server_connection_handler.o: server/server_connection_handler.c \
 /usr/include/openssl/ecerr.h:
 /usr/include/openssl/ecdsa.h:
 /usr/include/openssl/sha.h:
-/usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h:
-util/log.h:
+/usr/include/openssl/pem.h:
+/usr/include/openssl/x509.h:
+/usr/include/openssl/buffer.h:
+/usr/include/openssl/buffererr.h:
+/usr/include/openssl/rsa.h:
+/usr/include/openssl/rsaerr.h:
+/usr/include/openssl/dsa.h:
+/usr/include/openssl/dh.h:
+/usr/include/openssl/dherr.h:
+/usr/include/openssl/dsaerr.h:
+/usr/include/openssl/x509err.h:
+/usr/include/openssl/x509_vfy.h:
+/usr/include/openssl/lhash.h:
+/usr/include/openssl/pkcs7.h:
+/usr/include/openssl/pkcs7err.h:
+/usr/include/openssl/http.h:
+/usr/include/openssl/conf.h:
+/usr/include/openssl/conferr.h:
+/usr/include/openssl/conftypes.h:
+/usr/include/openssl/pemerr.h:
+/usr/include/openssl/err.h:
 /usr/include/errno.h:
 /usr/include/x86_64-linux-gnu/bits/errno.h:
 /usr/include/linux/errno.h:
 /usr/include/x86_64-linux-gnu/asm/errno.h:
 /usr/include/asm-generic/errno.h:
 /usr/include/asm-generic/errno-base.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h:
+util/log.h:
 server/server_connection_handler.h:
 server/configuration.h:
 config.h:

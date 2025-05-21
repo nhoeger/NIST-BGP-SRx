@@ -173,6 +173,8 @@ if ENABLE_GRPC_COND
 srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 		   libsrx_shared.la \
 		   libsrx_util.la \
+		   -lcrypto \
+		   -lssl \
 		   libgrpc_service.la \
 		   $(GRPC_SERVER_LIBS)
 
@@ -184,7 +186,10 @@ srx_server_LDFLAGS = $(SCA_LDFLAGS) \
 else 
 srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 		   libsrx_shared.la \
-		   libsrx_util.la
+		   libsrx_util.la \
+		   -lcrypto \
+		   -lssl
+		   
 srx_server_LDFLAGS = $(SCA_LDFLAGS)
 endif
 

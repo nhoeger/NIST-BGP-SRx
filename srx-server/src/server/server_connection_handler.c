@@ -63,24 +63,26 @@
  *
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <openssl/evp.h>
-#include <openssl/ec.h>
-#include <openssl/ecdsa.h>
-#include <openssl/sha.h>
-#include <openssl/obj_mac.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include "util/log.h"
-#include "server/server_connection_handler.h"
-#include "server/srx_packet_sender.h"
-#include "server/aspath_cache.h"
-#include "shared/srx_identifier.h"
-#include "shared/srx_packets.h"
-#include "shared/srx_defs.h"
 
+ #include <stdio.h>
+ #include <stdint.h>
+ #include <openssl/evp.h>
+ #include <openssl/ec.h>
+ #include <openssl/ecdsa.h>
+ #include <openssl/sha.h>
+ #include <openssl/obj_mac.h>
+ #include <openssl/pem.h>
+ #include <openssl/err.h>
+ #include <string.h>
+ #include <stdint.h>
+ #include <stdbool.h>
+ #include "util/log.h"
+ #include "server/server_connection_handler.h"
+ #include "server/srx_packet_sender.h"
+ #include "server/aspath_cache.h"
+ #include "shared/srx_identifier.h"
+ #include "shared/srx_packets.h"
+ #include "shared/srx_defs.h"
 #define HDR  "([0x%08X] SrvConnHdlr): "
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +127,7 @@ void stopSCHReceiverQueue(SCH_ReceiverQueue* queue);
 void _handlePacket(ServerSocket* svrSock, ServerClient* client,
                    void* packet, PacketLength length, void* srvConHandler);
 
+                   
 /**
  * Create the sender queue including the thread that manages the queue.
  *
@@ -1016,11 +1019,10 @@ EC_KEY* generateTestKey()
 
 EC_KEY* load_ec_private_key_from_string(const char* key_string) {
   EC_KEY* eckey = NULL;
-  printf("Loading EC private key from string...\n");
-  printf("Key string: %s\n", key_string);
-  // string converted to hex for debug
-  hexDump(key_string, strlen(key_string));
-  BIO* keybio = BIO_new_mem_buf(key_string, (int)strlen(key_string));
+  BIO* keybio = NULL;
+  //printf("OpenSSL Version Number (hex): 0x%lx\n", OpenSSL_version_num());
+  //printf("Step 1: Creating BIO...2\n");
+  //keybio = BIO_new_mem_buf(test_key_pem, (int)strlen(test_key_pem));
   if (!keybio) { 
       fprintf(stderr, "BIO creation failed\n"); 
       return NULL; 
@@ -1050,6 +1052,25 @@ uint64_t ntohll(uint64_t value) {
   #endif
   }
 
+
+EC_KEY* load_ec_key_from_file(const char* filename) {
+  FILE* fp = fopen(filename, "r");
+    if (!fp) {
+        perror("Failed to open key file");
+        return NULL;
+    }
+
+    EC_KEY* ec_key = PEM_read_ECPrivateKey(fp, NULL, NULL, NULL);
+    fclose(fp);
+
+    if (!ec_key) {
+        ERR_print_errors_fp(stderr); // Optional: Print OpenSSL errors
+        return NULL;
+    }
+
+    return ec_key;
+  }
+
 /**
  * This method processes the signature generation request. For each requested peer,
  * a signature will be generated and send back to the client. 
@@ -1058,16 +1079,16 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
                                             ServerSocket* svrSock, ClientThread* client,
                                             SRXPROXY_SIGTRA_GENERATION_REQUEST* generation_request) 
   {
-    LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
-    bool retVal = true;
-    SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
+    //LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
+    //bool retVal = true;
+    /*SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
 
     // Extract fields from the request
     uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
     uint8_t  prefix_len       = req->prefixLen;
     uint32_t prefix           = ntohl(req->prefix);
     uint8_t  as_path_len      = req->asPathLen;
-    uint32_t as_path[16]      = {0};
+    static uint32_t as_path[16]      = {0};
     for (int i = 0; i < as_path_len && i < 16; i++) {
         as_path[i] = ntohl(req->asPath[i]);
     }
@@ -1082,7 +1103,7 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     uint8_t  otc_flags        = req->otcFlags;
     uint16_t otc_field        = ntohs(req->otcField);
     uint8_t  peer_count       = req->peerCount;
-    uint32_t peers[16]        = {0};
+    static uint32_t peers[16]        = {0};
     for (int i = 0; i < peer_count && i < 16; i++) {
         peers[i] = ntohl(req->peers[i]);
     }
@@ -1116,26 +1137,43 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         printf("  Peer[%d]:        %u\n", i, peers[i]);
     }
     printf("---------------------------------------------------\n\n");
+    */
     
-    const char* test_key_pem =
-    "-----BEGIN EC PRIVATE KEY-----\n"
-    "MHcCAQEEICISYxLvyZ9WRyAi9hgmq6tQcysu6O+wGJn4iVVY425foAoGCCqGSM49\n"
-    "AwEHoUQDQgAEr4MIBWfpNw8SJoAlIMDUBXhYWQ74NOL6iAJdU7B2LNjq1tvLvbUG\n"
-    "nMFD8UUq+oQ0EkUsyV3OXNIGigpIKbpEcA==\n"
-    "-----END EC PRIVATE KEY-----";
     
-
+    printf("OpenSSL Version Number (hex): 0x%lx\n", OpenSSL_version_num());
     // TODO: Retrieve the actual key 
     //char* privateKey = self->sysConfig->privateKey;
-    ERR_print_errors_fp(stderr);
-    EC_KEY* key = load_ec_private_key_from_string(test_key_pem);
+
+
+    // key = load_ec_private_key_from_string(test_key_pem);
+
+    // EC_KEY* key = load_ec_private_key_from_string(test_key_pem);
+
+
+    // OpenSSL_add_all_algorithms();
+    const char* keyfile = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/65000.pem";  // Change to test other files
+    EC_KEY* key = load_ec_key_from_file(keyfile);
+    const BIGNUM* priv_bn = EC_KEY_get0_private_key(key);
+
+    char* priv_hex = BN_bn2hex(priv_bn);
+    if (priv_hex) {
+        printf("Private Key (hex): %s\n", priv_hex);
+        OPENSSL_free(priv_hex);  
+    }
+
+    
+
+    
+    
+    
+                   /*EC_KEY* key = NULL;
+    BIO* keybio = BIO_new_mem_buf((void*)test_key_pem, -1);  
+    key = PEM_read_bio_ECPrivateKey(keybio, NULL, NULL, NULL);
+
+    // 
+        
     if (key) {
         printf("Success! EC private key was loaded.\n");
-        
-        // Step 4: Print the key type
-        //printf("Key type: %d\n", EC_KEY_get_type(key));
-        // Step 5: Extract the private key and print it in hex format
-        printf("Still here\n");
         const BIGNUM* priv_bn = EC_KEY_get0_private_key(key);
         printf("Still here 2\n");
         if (priv_bn) {
@@ -1151,11 +1189,12 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         }
 
         // Clean up EC_KEY after use
-        EC_KEY_free(key);
+        //EC_KEY_free(key);
+        //BIO_free(keybio);
     } else {
         printf("Failed to load key.\n");
     }
-    return false;
+    return false;*/
 
 
 

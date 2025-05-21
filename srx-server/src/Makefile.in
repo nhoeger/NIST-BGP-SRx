@@ -703,11 +703,15 @@ srx_server_SOURCES = $(SERVER_DIR)/bgpsec_handler.c \
 
 @ENABLE_GRPC_COND_FALSE@srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 @ENABLE_GRPC_COND_FALSE@		   libsrx_shared.la \
-@ENABLE_GRPC_COND_FALSE@		   libsrx_util.la
+@ENABLE_GRPC_COND_FALSE@		   libsrx_util.la \
+@ENABLE_GRPC_COND_FALSE@		   -lcrypto \
+@ENABLE_GRPC_COND_FALSE@		   -lssl
 
 @ENABLE_GRPC_COND_TRUE@srx_server_LDADD = $(LIB_PATRICIA) $(SCA_LIBS) \
 @ENABLE_GRPC_COND_TRUE@		   libsrx_shared.la \
 @ENABLE_GRPC_COND_TRUE@		   libsrx_util.la \
+@ENABLE_GRPC_COND_TRUE@		   -lcrypto \
+@ENABLE_GRPC_COND_TRUE@		   -lssl \
 @ENABLE_GRPC_COND_TRUE@		   libgrpc_service.la \
 @ENABLE_GRPC_COND_TRUE@		   $(GRPC_SERVER_LIBS)
 
