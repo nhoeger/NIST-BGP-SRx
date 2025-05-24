@@ -945,7 +945,7 @@ void hexDump(const void* data, size_t size) {
 
 // helper stuct to hold the signature input
 typedef struct {
-  uint8_t  otcFlag;       // 1 byte
+  uint32_t otcField;     // 4 byte
   uint32_t prevASN;       // 4 bytes
   uint32_t currentASN;    // 4 bytes
   uint32_t nextASN;       // 4 bytes
@@ -957,45 +957,60 @@ typedef struct {
 
 bool signBGPMessageP256(const SignatureInput* input, EC_KEY* ecKey, uint8_t* signature, unsigned int* sigLen)
 {
-  printf("Starting") ;
-  printf("Check one");
+  printf("\n");
+  printf("#-- Starting signBGPMessageP256 --#\n");
+
   if (EC_KEY_check_key(ecKey) != 1) {
     fprintf(stderr, "Invalid EC key\n");
     return false;
-  }
-  printf("Check two");
-  if (EC_KEY_get0_group(ecKey) != EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)) {
+  } 
+
+  const EC_GROUP* keyGroup = EC_KEY_get0_group(ecKey);
+  int keyNid = EC_GROUP_get_curve_name(keyGroup);
+
+  if (keyNid != NID_X9_62_prime256v1) {
     fprintf(stderr, "Key is not using the expected curve\n");
     return false;
-  }
-  
-  if (!input || !ecKey || !signature || !sigLen) return false;
-
-    uint8_t message[22];  // 1 + 4 + 4 + 4 = 13 bytes
-
-    // Build the message
-    message[0] = input->otcFlag;
-    memcpy(message + 1, &input->prevASN, sizeof(uint32_t));
-    memcpy(message + 5, &input->currentASN, sizeof(uint32_t));
-    memcpy(message + 9, &input->nextASN, sizeof(uint32_t));
-    memcpy(message + 13, &input->timestamp, sizeof(uint32_t));
-    memcpy(message + 17, &input->prefixLen, sizeof(uint8_t));
-    memcpy(message + 18, &input->prefix, sizeof(uint32_t));
-    //memcpy(message + 18, input->prefix, 4);
-
-    // --- Step 1: Hash the message with SHA-256 ---
-    uint8_t hash[SHA256_DIGEST_LENGTH];
-    SHA256(message, sizeof(message), hash);
-
-    // --- Step 2: Sign the hash using ECDSA ---
+  } else if (EC_KEY_get0_private_key(ecKey) == NULL) {
+    fprintf(stderr, "Private key is missing\n");
+    return false;
+  } else {
+    printf("Key curve NID: %d\n", EC_GROUP_get_curve_name(EC_KEY_get0_group(ecKey)));  
+    printf("Build canonical base message\n");
     
-    //*sigLen = ECDSA_size(ecKey);  // Max signature size
-    //if (ECDSA_sign(0, hash, sizeof(hash), signature, sigLen, ecKey) != 1) {
-    //    fprintf(stderr, "Error signing ECDSA\n");
-    //    return false;
-    //}
+
+
+    int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ecKey));
+    const char* curve_name = OBJ_nid2sn(nid);
+    printf("Curve name: %s\n", curve_name);
+    if (!input || !ecKey || !signature || !sigLen) return false;
+
+      uint8_t message[22];  // 1 + 4 + 4 + 4 = 13 bytes
+
+      // Build the message
+      memcpy(message, &input->otcField, sizeof(uint32_t));
+      memcpy(message + 4, &input->prevASN, sizeof(uint32_t));
+      memcpy(message + 8, &input->currentASN, sizeof(uint32_t));
+      memcpy(message + 12, &input->nextASN, sizeof(uint32_t));
+      memcpy(message + 16, &input->timestamp, sizeof(uint32_t));
+      memcpy(message + 19, &input->prefixLen, sizeof(uint8_t));
+      memcpy(message + 21, &input->prefix, sizeof(uint32_t));
+
+      // --- Step 1: Hash the message with SHA-256 ---
+      uint8_t hash[SHA256_DIGEST_LENGTH];
+      SHA256(message, sizeof(message), hash);
+
+      // --- Step 2: Sign the hash using ECDSA ---
+      
+      *sigLen = ECDSA_size(ecKey);  // Max signature size
+      if (ECDSA_sign(0, hash, sizeof(hash), signature, sigLen, ecKey) != 1) {
+        fprintf(stderr, "Error signing ECDSA\n");
+        return false;
+      }
 
     return true;
+
+  }
 }
 
 
@@ -1079,9 +1094,9 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
                                             ServerSocket* svrSock, ClientThread* client,
                                             SRXPROXY_SIGTRA_GENERATION_REQUEST* generation_request) 
   {
-    //LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
-    //bool retVal = true;
-    /*SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
+    LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
+    bool retVal = true;
+    SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
 
     // Extract fields from the request
     uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
@@ -1137,7 +1152,7 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         printf("  Peer[%d]:        %u\n", i, peers[i]);
     }
     printf("---------------------------------------------------\n\n");
-    */
+    
     
     
     printf("OpenSSL Version Number (hex): 0x%lx\n", OpenSSL_version_num());
@@ -1151,6 +1166,10 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
 
 
     // OpenSSL_add_all_algorithms();
+
+    // Create test key (in real-world, load your AS's key)
+    // key = generateTestKey();
+
     const char* keyfile = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/65000.pem";  // Change to test other files
     EC_KEY* key = load_ec_key_from_file(keyfile);
     const BIGNUM* priv_bn = EC_KEY_get0_private_key(key);
@@ -1162,74 +1181,32 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
 
     
-
-    
-    
-    
-                   /*EC_KEY* key = NULL;
-    BIO* keybio = BIO_new_mem_buf((void*)test_key_pem, -1);  
-    key = PEM_read_bio_ECPrivateKey(keybio, NULL, NULL, NULL);
-
-    // 
-        
-    if (key) {
-        printf("Success! EC private key was loaded.\n");
-        const BIGNUM* priv_bn = EC_KEY_get0_private_key(key);
-        printf("Still here 2\n");
-        if (priv_bn) {
-            char* priv_hex = BN_bn2hex(priv_bn);
-            if (priv_hex) {
-                printf("Private Key (hex): %s\n", priv_hex);
-                OPENSSL_free(priv_hex);  
-            } else {
-                fprintf(stderr, "Failed to convert private key to hex.\n");
-            }
-        } else {
-            fprintf(stderr, "Failed to get private key from EC_KEY.\n");
-        }
-
-        // Clean up EC_KEY after use
-        //EC_KEY_free(key);
-        //BIO_free(keybio);
-    } else {
-        printf("Failed to load key.\n");
-    }
-    return false;*/
-
-
-
-
-/*
-    // Create test key (in real-world, load your AS's key)
-    //EC_KEY* ecKey = generateTestKey();
-    
-
+    printf("We are still here");
 
     uint8_t signature[72];  // ECDSA sig max ~72 bytes (depends on r, s size)
     unsigned int sigLen = 0;
     
     SignatureInput input = {
-      .otcFlag = otc_flags,
+      .otcField = 65001,
       .prevASN = 65001,  
       .currentASN = 65002,  
       .nextASN = 65003,   
       .timestamp = ntohl(timestamp),
       .prefixLen = prefix_len,
       .prefix = prefix
-    };*/
-
-        /*
-        int result = signBGPMessageP256(&input, ecKey, signature, &sigLen);
+    };
+    printf("Lets enter signature generation\n");
+    int result = signBGPMessageP256(&input, key, signature, &sigLen);
         if (result) {
             printf("Signing success! Signature length: %u\n", sigLen);
         } else {
             fprintf(stderr, "Signing failed!\n");
-    }*/
-    /*
+    }
+    printf("After signature generation.");
     for (int i = 0; i < peer_count && i < 16; i++) {
       // Change next AS 
       input.nextASN = peers[i];
-      if (signBGPMessageP256(&input, ecKey, signature, &sigLen)) {
+      if (signBGPMessageP256(&input, key, signature, &sigLen)) {
         printf("Signature generated successfully! Signature length = %u bytes\n", sigLen);
 
         printf("Signature (hex): ");
@@ -1262,11 +1239,11 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
       }
     }
 
-    EC_KEY_free(ecKey);
+    EC_KEY_free(key);
     printf("Done with Key free\n");
     printf("Sending signature back to client...\n");
    
-    return retVal; */
+    return retVal; 
   }
 
 
