@@ -394,16 +394,12 @@ typedef struct {
 // -----------------------------
 
 typedef struct {
-  uint8_t     prefixLen;          // Prefix length (CIDR notation)
-  uint32_t     prefix[16];         // IPv4 (first 4 bytes) or IPv6 prefix
-  uint8_t     asPathLen;          // Number of ASNs in the path
-  uint32_t    asPath[16];         // ASN path entries (max 16 for simplicity)
-  uint8_t     pkiIDType;          // 0 = router SKI, 1 = AS-level ID
-  uint8_t     pkiID[20];          // Subject Key Identifier or similar
-  uint64_t    timestamp;          // Unix timestamp (seconds since epoch)
-  uint8_t     signature[64];      // Ed25519 signature
-  uint8_t     otcFlags;           // Optional flags (OTC, ASPA, etc.)
-  uint16_t    otcField;           // Holds an ASN, only used when Flag is set
+  uint8_t     id;   // order in current Signautre Block List 
+	uint8_t     signature[72];       
+  uint64_t    timestamp;           
+  uint8_t     ski[20];  
+  uint32_t    creatingAS;
+  uint32_t    nextASN;        
 } __attribute__((packed)) SRXPROXY_SIGTRA_BLOCK;
 
 // -----------------------------
@@ -412,15 +408,20 @@ typedef struct {
 
 typedef struct { 
   // The type of the SRx packet.
-  uint8_t  type;
-  uint16_t reserved16;
-  uint8_t  reserved8;
-  uint32_t reserved32;
+  uint8_t     type;
+  uint16_t    reserved16;
+  uint8_t     reserved8;
+  uint32_t    reserved32;
   // The total length of this header in bytes.
-  uint32_t length;
+  uint32_t    length;
 	uint32_t    signature_identifier;  
-  uint8_t         blockCount;           // Number of SignatureBlocks
-  SRXPROXY_SIGTRA_BLOCK  blocks[];             // Flexible array of signature blocks
+  uint8_t     blockCount;  
+  uint8_t     prefixLen;         
+  uint32_t    prefix;             
+  uint8_t     asPathLen;          
+  uint32_t    asPath[16];   
+  uint32_t    otcField;             
+  SRXPROXY_SIGTRA_BLOCK  blocks[];             
 } __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_REQUEST;
 
 // Defines the signature reqeust the client makes to the server 

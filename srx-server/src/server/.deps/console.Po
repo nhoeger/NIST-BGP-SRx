@@ -133,9 +133,10 @@ server/console.o: server/console.c /usr/include/stdc-predef.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  server/rpki_router_client.h shared/rpki_router.h util/client_socket.h \
  server/aspath_cache.h server/aspa_trie.h \
- server/server_connection_handler.h server/srx_server.h \
- server/srx_packet_sender.h server/command_handler.h \
- server/rpki_handler.h server/rpki_router_client.h util/log.h
+ server/server_connection_handler.h server/ski_cache.h \
+ server/rpki_queue.h server/srx_server.h server/srx_packet_sender.h \
+ server/command_handler.h server/rpki_handler.h \
+ server/rpki_router_client.h util/log.h
 /usr/include/stdc-predef.h:
 /usr/include/stdio.h:
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
@@ -306,6 +307,8 @@ util/client_socket.h:
 server/aspath_cache.h:
 server/aspa_trie.h:
 server/server_connection_handler.h:
+server/ski_cache.h:
+server/rpki_queue.h:
 server/srx_server.h:
 server/srx_packet_sender.h:
 server/command_handler.h:

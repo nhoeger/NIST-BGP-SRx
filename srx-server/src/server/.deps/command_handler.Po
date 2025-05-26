@@ -135,9 +135,10 @@ server/command_handler.o: server/command_handler.c \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  server/rpki_router_client.h shared/rpki_router.h util/client_socket.h \
  server/aspath_cache.h server/aspa_trie.h \
- server/server_connection_handler.h shared/srx_identifier.h \
- server/srx_packet_sender.h server/rpki_queue.h util/log.h \
- /usr/include/string.h /usr/include/strings.h util/math.h
+ server/server_connection_handler.h server/ski_cache.h \
+ server/rpki_queue.h shared/srx_identifier.h server/srx_packet_sender.h \
+ server/rpki_queue.h util/log.h /usr/include/string.h \
+ /usr/include/strings.h util/math.h
 /usr/include/stdc-predef.h:
 /usr/include/ctype.h:
 /usr/include/features.h:
@@ -306,6 +307,8 @@ util/client_socket.h:
 server/aspath_cache.h:
 server/aspa_trie.h:
 server/server_connection_handler.h:
+server/ski_cache.h:
+server/rpki_queue.h:
 shared/srx_identifier.h:
 server/srx_packet_sender.h:
 server/rpki_queue.h:

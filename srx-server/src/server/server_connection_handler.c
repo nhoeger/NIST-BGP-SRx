@@ -81,6 +81,7 @@
  #include "server/srx_packet_sender.h"
  #include "server/aspath_cache.h"
  #include "shared/srx_identifier.h"
+ #include "server/ski_cache.h"
  #include "shared/srx_packets.h"
  #include "shared/srx_defs.h"
 #define HDR  "([0x%08X] SrvConnHdlr): "
@@ -454,7 +455,8 @@ bool addToSCHReceiverQueue(uint8_t* pdu, ServerSocket* svrSoc,
 bool createServerConnectionHandler(ServerConnectionHandler* self,
                                    UpdateCache* updCache,
                                    AspathCache* aspathCache,
-                                   Configuration* sysConfig)
+                                   Configuration* sysConfig,
+                                   SKI_CACHE* skiCache)
 {
   bool cont = true;
   self->inShutdown = false;
@@ -468,6 +470,11 @@ bool createServerConnectionHandler(ServerConnectionHandler* self,
   if (sysConfig == NULL)
   {
     RAISE_SYS_ERROR("The system configuration is NULL!");
+    cont = false;
+  }
+  if (skiCache == NULL)
+  {
+    RAISE_SYS_ERROR("The SKI cache is NULL!");
     cont = false;
   }
 
@@ -487,6 +494,7 @@ bool createServerConnectionHandler(ServerConnectionHandler* self,
 
       self->updateCache = updCache;
       self->aspathCache = aspathCache;
+      self->skiCache = skiCache;
       self->sysConfig = sysConfig;
 
       if (!sysConfig->mode_no_receivequeue)
@@ -883,8 +891,109 @@ bool processValidationRequest(ServerConnectionHandler* self,
   return retVal;
 }
 
+#define MAX_BLOCKS 16
+#define HASH_LEN SHA256_DIGEST_LENGTH
+
+/*void calculateHashed(const uint8_t* message, size_t message_len,
+  const SRXPROXY_SIGTRA_BLOCK* blocks, size_t depth,
+  uint8_t out_hashes[][HASH_LEN])
+{
+  if (!message || !blocks || !out_hashes || depth == 0) return;
+
+  // Step 1: H_0 = Hash(message)
+  SHA256(message, message_len, out_hashes[0]);
+
+  // Step 2: Compute each H_i
+  for (size_t i = 1; i <= depth; ++i) {
+  const SRXPROXY_SIGTRA_BLOCK* blk = &blocks[i - 1];
+  uint8_t input[HASH_LEN + sizeof(uint64_t) + 20 + sizeof(uint32_t) * 2];
+  size_t offset = 0;
+
+  memcpy(input + offset, out_hashes[i - 1], HASH_LEN); offset += HASH_LEN;
+  memcpy(input + offset, &blk->timestamp, sizeof(uint64_t)); offset += sizeof(uint64_t);
+  memcpy(input + offset, blk->ski, 20); offset += 20;
+  memcpy(input + offset, &blk->creatingAS, sizeof(uint32_t)); offset += sizeof(uint32_t);
+  memcpy(input + offset, &blk->nextASN, sizeof(uint32_t)); offset += sizeof(uint32_t);
+
+  SHA256(input, offset, out_hashes[i]);
+  }
+}*/
+
+void calculateHashed(){
+  // Input m to hash, depth, SigBlocks
+  /*
+  H_0 = Hash(m)
+  returnHashes = {}
+  returnHashes.append(H_0)
+  for i = 1 to depth do
+    H_i = Hash(H_(i-1) || SigBlocks[i-1].timestamp || SigBlocks[i-1].ski || SigBlocks[i-1].currentAS || SigBlocks[i-1].nextASN)
+    returnHashes.append(H_i)
+  end for
+  return returnHashes
+  */
+}
+
+
+
+
 bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block){
-  return true; // Placeholder for actual validation logic
+  // Direcotry for all public keys
+  //const char* publicKeyDir = "/etc/srxproxy/keys/";
+  const char* publicKeyDir = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/";
+  uint32_t asn = ntohl(block->creatingAS);
+  printf("Validating signature block for ASN: %u\n", asn);
+  // Step 1: Build the full path to the certificate file
+  char certPath[512];
+  snprintf(certPath, sizeof(certPath), "%s%u.cert", publicKeyDir, asn);
+
+  FILE* file = fopen(certPath, "rb");
+  if (!file) {
+      fprintf(stderr, "Certificate file not found: %s\n", certPath);
+      return false;
+  }
+
+  // Step 2: Load X.509 certificate
+  X509* cert = d2i_X509_fp(file, NULL);
+  fclose(file);
+  if (!cert) {
+      fprintf(stderr, "Failed to parse certificate from file: %s\n", certPath);
+      return false;
+  }
+
+  // Step 3: Extract public key
+  EVP_PKEY* pubkey = X509_get_pubkey(cert);
+  X509_free(cert);
+  if (!pubkey) {
+      fprintf(stderr, "Failed to extract public key from cert\n");
+      return false;
+  }
+
+  EC_KEY* ecKey = EVP_PKEY_get1_EC_KEY(pubkey);
+    EVP_PKEY_free(pubkey);
+    if (!ecKey) {
+        fprintf(stderr, "Failed to get EC_KEY from EVP_PKEY\n");
+        return false;
+    }
+
+  // Step 4: Hash the input message using SHA-256
+  /*uint8_t hash[SHA256_DIGEST_LENGTH];
+  SHA256(message, message_len, hash);
+
+  // Step 5: Verify the ECDSA signature
+  int valid = ECDSA_verify(0, hash, SHA256_DIGEST_LENGTH, block->signature, block->sigLen, ecKey);
+  EC_KEY_free(ecKey);
+
+  if (valid == 1) {
+      printf("Signature is valid!\n");
+      return true;
+  } else if (valid == 0) {
+      printf("Signature is invalid!\n");
+      return false;
+  } else {
+      fprintf(stderr, "Error while verifying signature\n");
+      return false;
+  }*/
+ return true; // For now, always return true for testing purposes
 }
 
 
@@ -895,6 +1004,32 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
   LOG(LEVEL_INFO, HDR "+--------------------processSigtraValidationRequest---------------------+", pthread_self());
   
   bool retVal = true;
+  // ARray is in Strucutred: [lastHop,..,.., Origin]
+
+
+  // Get data from the validation request
+  uint32_t localAsPath[16]; 
+  memcpy(localAsPath, validation_request->asPath, sizeof(uint32_t) * validation_request->asPathLen);
+  uint32_t originAs = localAsPath[validation_request->asPathLen - 1];
+  uint32_t asPathLen = ntohl(validation_request->asPathLen);
+  uint32_t prefix = ntohl(validation_request->prefix);
+  uint8_t prefixLen = validation_request->prefixLen;
+  uint32_t otcField = ntohl(validation_request->otcField);
+
+  // Initial Hash = Hash(Origin || Prefix || PrefixLen || OTCField)
+  uint8_t initialHash[SHA256_DIGEST_LENGTH];
+  uint8_t initialInput[sizeof(uint32_t) * 4 + sizeof(uint8_t)];
+  size_t offset = 0;
+  memcpy(initialInput + offset, &originAs, sizeof(uint32_t)); offset += sizeof(uint32_t);
+  memcpy(initialInput + offset, &prefix, sizeof(uint32_t)); offset += sizeof(uint32_t);
+  memcpy(initialInput + offset, &prefixLen, sizeof(uint8_t)); offset += sizeof(uint8_t);
+  memcpy(initialInput + offset, &otcField, sizeof(uint32_t)); offset += sizeof(uint32_t);
+  SHA256(initialInput, offset, initialHash);
+  printf("Initial Hash: ");
+  for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+      printf("%02x", initialHash[i]);
+  }
+  printf("\n");
 
   // Pointer math to get first block
   uint8_t* raw = (uint8_t*)validation_request;
@@ -904,11 +1039,41 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
   for (uint8_t i = 0; i < count; i++)
   {
     SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
+    if (i == 0)  {
+      // Calculate first real hash
+      // Hash = Hash(H_(i-1) || timestamp || ski || creatingAS || nextASN)
+      uint8_t input[SHA256_DIGEST_LENGTH + sizeof(uint32_t) * 3 + 20];
+      size_t pos = 0;
+      memcpy(input + pos, initialHash, SHA256_DIGEST_LENGTH); pos += SHA256_DIGEST_LENGTH;
+      memcpy(input + pos, &block->timestamp, sizeof(uint32_t)); pos += sizeof(uint32_t);
+      memcpy(input + pos, block->ski, 20); pos += 20;
+      memcpy(input + pos, &block->creatingAS, sizeof(uint32_t)); pos += sizeof(uint32_t);
+      memcpy(input + pos, &block->nextASN, sizeof(uint32_t)); pos += sizeof(uint32_t);
+      uint8_t hash[SHA256_DIGEST_LENGTH];
+      SHA256(input, pos, hash);
+      printf("\nBlock %d Hash: ", i);
+      for (size_t j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+          printf("%02x", hash[j]);
+      }
+      printf("\n");
+    }
+    else
+    {
+      // TODO
+      // H1=Hash(ASPath[:i] || Prefix || PrefixLen || OTCField)
+      // H2=Hash(H1 || blocks[:i])
+      // H3=Hash(H2 || blocks[i].timestamp || blocks[i].ski || blocks[i].creatingAS || blocks[i].nextASN)
 
-    LOG(LEVEL_INFO, HDR "Validating signature block %d/%d (prefixLen: %u, AS path len: %u)", 
-        pthread_self(), i + 1, count, block->prefixLen, block->asPathLen);
+      // Step 1: Get the AS path up to the current block
+    }
+    
 
-    bool valid = validateSignatureBlock(block);
+
+
+
+
+    //bool valid = validateSignatureBlock(block);
+    bool valid = true; // For now, always return true for testing purposes
     if (!valid)
     {
       LOG(LEVEL_INFO, HDR "Signature block %d is INVALID", pthread_self(), i);
@@ -942,6 +1107,26 @@ void hexDump(const void* data, size_t size) {
   }
 }
 
+/**
+ * Convert a 40-character hex string to a 20-byte array.
+ * Returns 0 on success, -1 on failure.
+ */
+int parseHexSKI(const char* hexStr, uint8_t* outSKI) {
+  if (!hexStr || strlen(hexStr) != 40) {
+      fprintf(stderr, "Invalid SKI string (must be 40 hex characters)\n");
+      return -1;
+  }
+
+  for (int i = 0; i < 20; ++i) {
+      char byteStr[3] = { hexStr[i*2], hexStr[i*2+1], '\0' };
+      if (!isxdigit(byteStr[0]) || !isxdigit(byteStr[1])) {
+          fprintf(stderr, "Invalid hex character in SKI: %s\n", byteStr);
+          return -1;
+      }
+      outSKI[i] = (uint8_t) strtol(byteStr, NULL, 16);
+  }
+  return 0;
+}
 
 // helper stuct to hold the signature input
 typedef struct {
@@ -954,63 +1139,88 @@ typedef struct {
   uint32_t prefix;        // 4 bytes
 } SignatureInput;
 
+// Signature block
+typedef struct {
+  uint8_t signature[72];   // DER-encoded ECDSA signature
+  unsigned int sigLen;
+  uint32_t timestamp;
+  uint8_t ski[20];         // Subject Key Identifier
+  uint32_t asn;
+  uint32_t nextASN;
+} SignatureBlock;
 
-bool signBGPMessageP256(const SignatureInput* input, EC_KEY* ecKey, uint8_t* signature, unsigned int* sigLen)
+bool signBGPMessageP256(const SignatureInput* input,
+                        EC_KEY* ecKey,
+                        const uint8_t* prevHash, size_t prevHashLen,
+                        const uint8_t* prevSig, size_t prevSigLen,
+                        const SignatureBlock* prevBlock,
+                        const uint8_t* ski,
+                        SignatureBlock* sigBlock)
 {
-  printf("\n");
-  printf("#-- Starting signBGPMessageP256 --#\n");
-
-  if (EC_KEY_check_key(ecKey) != 1) {
-    fprintf(stderr, "Invalid EC key\n");
+  if (!input || !ecKey || !ski || !sigBlock) {
+    fprintf(stderr, "Invalid input to signBGPMessageP256\n");
     return false;
-  } 
-
-  const EC_GROUP* keyGroup = EC_KEY_get0_group(ecKey);
-  int keyNid = EC_GROUP_get_curve_name(keyGroup);
-
-  if (keyNid != NID_X9_62_prime256v1) {
-    fprintf(stderr, "Key is not using the expected curve\n");
-    return false;
-  } else if (EC_KEY_get0_private_key(ecKey) == NULL) {
-    fprintf(stderr, "Private key is missing\n");
-    return false;
-  } else {
-    printf("Key curve NID: %d\n", EC_GROUP_get_curve_name(EC_KEY_get0_group(ecKey)));  
-    printf("Build canonical base message\n");
-    
-
-
-    int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ecKey));
-    const char* curve_name = OBJ_nid2sn(nid);
-    printf("Curve name: %s\n", curve_name);
-    if (!input || !ecKey || !signature || !sigLen) return false;
-
-      uint8_t message[22];  // 1 + 4 + 4 + 4 = 13 bytes
-
-      // Build the message
-      memcpy(message, &input->otcField, sizeof(uint32_t));
-      memcpy(message + 4, &input->prevASN, sizeof(uint32_t));
-      memcpy(message + 8, &input->currentASN, sizeof(uint32_t));
-      memcpy(message + 12, &input->nextASN, sizeof(uint32_t));
-      memcpy(message + 16, &input->timestamp, sizeof(uint32_t));
-      memcpy(message + 19, &input->prefixLen, sizeof(uint8_t));
-      memcpy(message + 21, &input->prefix, sizeof(uint32_t));
-
-      // --- Step 1: Hash the message with SHA-256 ---
-      uint8_t hash[SHA256_DIGEST_LENGTH];
-      SHA256(message, sizeof(message), hash);
-
-      // --- Step 2: Sign the hash using ECDSA ---
-      
-      *sigLen = ECDSA_size(ecKey);  // Max signature size
-      if (ECDSA_sign(0, hash, sizeof(hash), signature, sigLen, ecKey) != 1) {
-        fprintf(stderr, "Error signing ECDSA\n");
-        return false;
-      }
-
-    return true;
-
   }
+
+  // Step 1: Canonical base message (21 bytes total)
+  uint8_t message[21];
+  size_t offset = 0;
+  memcpy(message + offset, &input->otcField, 4);   offset += 4;
+  memcpy(message + offset, &input->prevASN, 4);    offset += 4;
+  memcpy(message + offset, &input->currentASN, 4); offset += 4;
+  memcpy(message + offset, &input->nextASN, 4);    offset += 4;
+  memcpy(message + offset, &input->timestamp, 4);  offset += 4;
+  memcpy(message + offset, &input->prefixLen, 1);  offset += 1;
+  memcpy(message + offset, &input->prefix, 4);     offset += 4;
+
+  // Step 2: Hash H_0 = SHA256(canonical message)
+  uint8_t hash[SHA256_DIGEST_LENGTH];
+  SHA256(message, sizeof(message), hash);
+
+  // Step 3: If previous signature block exists, hash it into the chain
+  if (prevHash && prevSig && prevBlock) {
+    uint8_t chainInput[SHA256_DIGEST_LENGTH + 72 + 4 + 20 + 4 + 4];
+    size_t pos = 0;
+
+    memcpy(chainInput + pos, prevHash, prevHashLen); pos += prevHashLen;
+    memcpy(chainInput + pos, prevSig, prevSigLen);   pos += prevSigLen;
+    memcpy(chainInput + pos, &prevBlock->timestamp, 4); pos += 4;
+    memcpy(chainInput + pos, prevBlock->ski, 20);    pos += 20;
+    memcpy(chainInput + pos, &prevBlock->asn, 4);     pos += 4;
+    memcpy(chainInput + pos, &prevBlock->nextASN, 4); pos += 4;
+
+    SHA256(chainInput, pos, hash);  // hash is now H_n
+  }
+
+  // Step 4: Extend hash with current metadata
+  uint8_t metaInput[SHA256_DIGEST_LENGTH + 4 + 20 + 4 + 4];
+  size_t metaPos = 0;
+  memcpy(metaInput + metaPos, hash, SHA256_DIGEST_LENGTH); metaPos += SHA256_DIGEST_LENGTH;
+  memcpy(metaInput + metaPos, &input->timestamp, 4);       metaPos += 4;
+  memcpy(metaInput + metaPos, ski, 20);                    metaPos += 20;
+  memcpy(metaInput + metaPos, &input->currentASN, 4);      metaPos += 4;
+  memcpy(metaInput + metaPos, &input->nextASN, 4);         metaPos += 4;
+
+  // Step 5: Final hash for signing
+  uint8_t finalHash[SHA256_DIGEST_LENGTH];
+  SHA256(metaInput, metaPos, finalHash);
+
+  // Step 6: Sign with ECDSA
+  sigBlock->sigLen = sizeof(sigBlock->signature);
+  if (ECDSA_sign(0, finalHash, SHA256_DIGEST_LENGTH, sigBlock->signature, &sigBlock->sigLen, ecKey) != 1) {
+    fprintf(stderr, "ECDSA_sign failed\n");
+    ERR_print_errors_fp(stderr);
+    return false;
+  }
+
+  // Step 7: Fill SignatureBlock
+  sigBlock->timestamp = input->timestamp;
+  sigBlock->asn = input->currentASN;
+  sigBlock->nextASN = input->nextASN;
+  memcpy(sigBlock->ski, ski, 20);
+
+  printf("Signature created! Len: %u bytes\n", sigBlock->sigLen);
+  return true;
 }
 
 
@@ -1097,7 +1307,6 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
     bool retVal = true;
     SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
-
     // Extract fields from the request
     uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
     uint8_t  prefix_len       = req->prefixLen;
@@ -1124,6 +1333,8 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
 
     uint8_t* ts_bytes = (uint8_t*)&timestamp;
+
+
 
     // ---------- Print All Data ---------- //
     printf("\n--- Received SRXPROXY_SIGTRA_GENERATION_REQUEST ---\n");
@@ -1153,39 +1364,35 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     }
     printf("---------------------------------------------------\n\n");
     
-    
-    
-    printf("OpenSSL Version Number (hex): 0x%lx\n", OpenSSL_version_num());
-    // TODO: Retrieve the actual key 
-    //char* privateKey = self->sysConfig->privateKey;
-
-
-    // key = load_ec_private_key_from_string(test_key_pem);
-
-    // EC_KEY* key = load_ec_private_key_from_string(test_key_pem);
-
-
-    // OpenSSL_add_all_algorithms();
-
-    // Create test key (in real-world, load your AS's key)
-    // key = generateTestKey();
-
-    const char* keyfile = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/65000.pem";  // Change to test other files
-    EC_KEY* key = load_ec_key_from_file(keyfile);
-    const BIGNUM* priv_bn = EC_KEY_get0_private_key(key);
-
-    char* priv_hex = BN_bn2hex(priv_bn);
-    if (priv_hex) {
-        printf("Private Key (hex): %s\n", priv_hex);
-        OPENSSL_free(priv_hex);  
+    // Load EC_KEY from PEM
+    const char* keyfile = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/65000.pem";
+    FILE* fp = fopen(keyfile, "r");
+    if (!fp) {
+        perror("Failed to open key file");
+        return 1;
     }
-
+    EC_KEY* key = load_ec_key_from_file(keyfile);
     
-    printf("We are still here");
-
-    uint8_t signature[72];  // ECDSA sig max ~72 bytes (depends on r, s size)
-    unsigned int sigLen = 0;
+    // Load SKI 
+    char* skiStr = self->proxyMap[client->routerID].bgpsecKey;
+    uint8_t ski[20];    
+    if (parseHexSKI(skiStr, ski) == 0) {
+        printf("Parsed SKI:\n");
+        for (int i = 0; i < 20; ++i) {
+            printf("%02X ", ski[i]);
+        }
+        printf("\n");
+    }
     
+
+    //SKI_CACHE* skiCache = getSKICache(self->skiCache);
+    //bool ski_getKey(SKI_CACHE* cache, uint32_t asn, 
+    //  uint8_t* ski, uint8_t algoID) {(skiCache, client->routerID);
+    //printf("Okay we are going in.\n");
+    //ski_getKey(skiCache, peers[0], *ski);
+    //printf("We are done here");
+    
+    // Fill the SignatureInput
     SignatureInput input = {
       .otcField = 65001,
       .prevASN = 65001,  
@@ -1195,23 +1402,28 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
       .prefixLen = prefix_len,
       .prefix = prefix
     };
-    printf("Lets enter signature generation\n");
-    int result = signBGPMessageP256(&input, key, signature, &sigLen);
-        if (result) {
-            printf("Signing success! Signature length: %u\n", sigLen);
-        } else {
-            fprintf(stderr, "Signing failed!\n");
-    }
-    printf("After signature generation.");
-    for (int i = 0; i < peer_count && i < 16; i++) {
-      // Change next AS 
-      input.nextASN = peers[i];
-      if (signBGPMessageP256(&input, key, signature, &sigLen)) {
-        printf("Signature generated successfully! Signature length = %u bytes\n", sigLen);
 
+    SignatureBlock sigBlock;
+
+    for (int i = 0; i < peer_count && i < 16; i++) {
+      // Iterate over each peer and sign the message
+      input.nextASN = peers[i];
+      printf("Signing for peer %d with ASN %u\n", i, input.nextASN);
+      int result = signBGPMessageP256(
+        &input,
+        key,
+        NULL, 0,         // No previous hash
+        NULL, 0,         // No previous signature
+        NULL,            // No previous block
+        ski,             // SKI for the key
+        &sigBlock
+      );
+  
+      if (result) {
+        printf("Signature generated successfully! Signature length = %u bytes\n", sigBlock.sigLen);
         printf("Signature (hex): ");
-        for (unsigned int i = 0; i < sigLen; ++i)
-            printf("%02X", signature[i]);
+        for (unsigned int i = 0; i < sigBlock.sigLen; ++i)
+            printf("%02X", sigBlock.signature[i]);
         printf("\n");
 
         uint32_t length = sizeof(SRXPROXY_SIGTRA_SIGNATURE_RESPONSE);
@@ -1220,8 +1432,8 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         pdu->length = htonl(length);
         pdu->signature_identifier = htonl(signature_id);
         memset(pdu->signature, 0, sizeof(pdu->signature));
-        if (sigLen <= sizeof(pdu->signature)) {
-            memcpy(pdu->signature, signature, sigLen);
+        if (sigBlock.sigLen <= sizeof(pdu->signature)) {
+            memcpy(pdu->signature, sigBlock.signature, sigBlock.sigLen);
         } else {
             fprintf(stderr, "Signature too long to store in response packet!\n");
             continue;
@@ -1235,14 +1447,13 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
           printf("Signature sent to client successfully!\n");
         }
       } else {
-          fprintf(stderr, "Failed to generate signature\n");
+          fprintf(stderr, "Signing failed!\n");
       }
     }
 
     EC_KEY_free(key);
     printf("Done with Key free\n");
     printf("Sending signature back to client...\n");
-   
     return retVal; 
   }
 

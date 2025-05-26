@@ -1673,6 +1673,57 @@ bool ski_unregisterKey(SKI_CACHE* cache, uint32_t asn,
   return (errMSG != NULL) ? false : true;
 }
 
+
+bool ski_getKey(SKI_CACHE* cache, uint32_t asn, uint8_t* ski) {
+    printf("Entering functon ski_getKey\n");
+    printf("ASN: %u\n", asn);
+    printf("SKI: ");
+    //for (int i = 0; i < SKI_LENGTH; i++) {
+    //    printf("%02X", ski[i]);
+    //}
+    printf("Trying to get Key for ASN %u", asn);
+    uint16_t upper = asn >> 16;
+
+    _SKI_CACHE* sCache = (_SKI_CACHE*)cache;
+    _SKI_TMP_HELPER* tHlp = &sCache->tmpHelper;
+    memset(tHlp, 0, sizeof(_SKI_TMP_HELPER));  
+    tHlp->cNode   = NULL;
+    tHlp->cAlgoID  = NULL;
+    tHlp->cData    = NULL;
+    _SKI_CACHE_DATA*    prev  = NULL;
+    bool found = false;
+    int  cmp   = 0;
+  
+    // Retrieve the correct CacheNode from the cache. If the node does not exist
+    // yet and create is false, the cacheNODE will be NULL
+    tHlp->cNode = __ski_getCacheNode(cache, upper, false);
+    if (tHlp->cNode != NULL)
+    { 
+      printf("Found Cache Node for ASN %u\n", asn);
+      tHlp->cAlgoID = __ski_getCacheAlgoID(tHlp->cNode, asn & 0xFFFF, 0, false);
+      _SKI_CACHE_DATA* cData = _ski_getCacheData(sCache, asn, ski, tHlp->cAlgoID, false);
+      if (cData != NULL)
+      {
+        printf("Here is everything we have for ASN %u:\n", asn);
+        printf("AlgoID: %u\n", cData->algoID);
+        printf("SKI: ");
+        for (int i = 0; i < SKI_LENGTH; i++)
+        {
+          printf("%02X", cData->ski[i]);
+        }
+        printf("\n");
+        printf("Counter: %u\n", cData->counter);
+
+        
+      }
+      else
+      {
+        printf("SKI not found for ASN %u\n", asn);
+      }
+    }
+    
+    return false;
+  }
 /**
  * This function does clean up the SKI CACHE. It can empty it, or selectively
  * clean all key registration or update registration. This clean walks through 

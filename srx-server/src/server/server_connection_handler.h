@@ -60,6 +60,7 @@
 #include "server/configuration.h"
 #include "server/command_queue.h"
 #include "server/update_cache.h"
+ #include "server/ski_cache.h"
 #include "server/aspath_cache.h"
 #include "util/server_socket.h"
 #include "util/slist.h"
@@ -135,6 +136,8 @@ typedef struct {
   void*              receiverQueue;
 
   AspathCache*      aspathCache;
+
+  SKI_CACHE*       skiCache;
 } ServerConnectionHandler;
 
 /**
@@ -152,7 +155,8 @@ typedef struct {
 bool createServerConnectionHandler(ServerConnectionHandler* self, 
                                    UpdateCache* updCache, 
                                    AspathCache* aspathCache, 
-                                   Configuration* sysConfig);
+                                   Configuration* sysConfig,
+                                   SKI_CACHE* skiCache);
 
 /**
  * Frees allocated resources.

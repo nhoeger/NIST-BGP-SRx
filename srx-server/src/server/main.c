@@ -364,7 +364,7 @@ static bool setupHandlers()
     else
     {
       handlers |= SETUP_BGPSEC_HANDLER;
-      if (!createServerConnectionHandler (&svrConnHandler, &updCache, &aspathCache, &config))
+      if (!createServerConnectionHandler (&svrConnHandler, &updCache, &aspathCache, &config, &skiCache))
       {
         RAISE_ERROR("Failed to create Server Connection Handler.");
       }

@@ -155,8 +155,9 @@ server/server_connection_handler.o: server/server_connection_handler.c \
  /usr/include/x86_64-linux-gnu/bits/in.h util/prefix.h util/mutex.h \
  /usr/include/semaphore.h /usr/include/x86_64-linux-gnu/bits/semaphore.h \
  util/packet.h util/server_socket.h util/slist.h server/update_cache.h \
- util/rwlock.h server/aspath_cache.h server/aspa_trie.h \
- server/srx_packet_sender.h shared/srx_identifier.h
+ util/rwlock.h server/ski_cache.h server/rpki_queue.h \
+ server/aspath_cache.h server/aspa_trie.h server/srx_packet_sender.h \
+ shared/srx_identifier.h
 /usr/include/stdc-predef.h:
 /usr/include/stdio.h:
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
@@ -368,6 +369,8 @@ util/server_socket.h:
 util/slist.h:
 server/update_cache.h:
 util/rwlock.h:
+server/ski_cache.h:
+server/rpki_queue.h:
 server/aspath_cache.h:
 server/aspa_trie.h:
 server/srx_packet_sender.h:

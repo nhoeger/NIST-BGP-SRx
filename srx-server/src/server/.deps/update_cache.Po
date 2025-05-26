@@ -125,13 +125,14 @@ server/update_cache.o: server/update_cache.c /usr/include/stdc-predef.h \
  /usr/include/semaphore.h /usr/include/x86_64-linux-gnu/bits/semaphore.h \
  util/rwlock.h util/slist.h server/server_connection_handler.h \
  server/command_queue.h util/packet.h util/server_socket.h \
- server/aspath_cache.h server/aspa_trie.h server/prefix_cache.h \
+ server/ski_cache.h server/rpki_queue.h server/aspath_cache.h \
+ server/aspa_trie.h server/prefix_cache.h \
  /home/nils/Dokumente/ASPA+/NIST-BGP-SRx/srx-server/src/../extras/local/include/patricia.h \
  /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- server/ski_cache.h server/rpki_queue.h util/log.h util/xml_out.h \
- server/main.h server/bgpsec_handler.h server/key_cache.h
+ util/log.h util/xml_out.h server/main.h server/bgpsec_handler.h \
+ server/key_cache.h
 /usr/include/stdc-predef.h:
 /usr/include/uthash.h:
 /usr/include/string.h:
@@ -286,6 +287,8 @@ server/server_connection_handler.h:
 server/command_queue.h:
 util/packet.h:
 util/server_socket.h:
+server/ski_cache.h:
+server/rpki_queue.h:
 server/aspath_cache.h:
 server/aspa_trie.h:
 server/prefix_cache.h:
@@ -296,8 +299,6 @@ server/prefix_cache.h:
 /usr/include/x86_64-linux-gnu/asm/errno.h:
 /usr/include/asm-generic/errno.h:
 /usr/include/asm-generic/errno-base.h:
-server/ski_cache.h:
-server/rpki_queue.h:
 util/log.h:
 util/xml_out.h:
 server/main.h:

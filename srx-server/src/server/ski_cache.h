@@ -220,7 +220,9 @@ bool ski_registerKey(SKI_CACHE* cache, uint32_t asn,
 bool ski_unregisterKey(SKI_CACHE* cache, uint32_t asn, 
                        uint8_t* ski, uint8_t algoID);
 
-/**
+bool ski_getKey(SKI_CACHE* cache, uint32_t asn, uint8_t* ski);
+
+                       /**
  * Examine given SKI Cache. This function also allows to print the cache in 
  * XML format if verbose is enabled..
  * 

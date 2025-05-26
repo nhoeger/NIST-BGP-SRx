@@ -126,8 +126,8 @@ util/packet.lo: util/packet.c /usr/include/stdc-predef.h \
  /usr/include/asm-generic/param.h util/rwlock.h \
  server/server_connection_handler.h server/configuration.h \
  server/command_queue.h util/mutex.h util/server_socket.h \
- server/update_cache.h server/aspath_cache.h server/aspa_trie.h \
- util/log.h /usr/include/errno.h \
+ server/update_cache.h server/ski_cache.h server/rpki_queue.h \
+ server/aspath_cache.h server/aspa_trie.h util/log.h /usr/include/errno.h \
  /usr/include/x86_64-linux-gnu/bits/errno.h /usr/include/linux/errno.h \
  /usr/include/x86_64-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
@@ -288,6 +288,8 @@ server/command_queue.h:
 util/mutex.h:
 util/server_socket.h:
 server/update_cache.h:
+server/ski_cache.h:
+server/rpki_queue.h:
 server/aspath_cache.h:
 server/aspa_trie.h:
 util/log.h:
