@@ -732,10 +732,14 @@ extern void cb_proxyCallbackHandler_Service(int p0, void* p1);
  */
 bool sendSigtraResult(ServerSocket* srvSoc, ServerClient* client,bool result, bool useQueue,
                       uint32_t signature_identifier){
+  printf("Sending Sigtra Result\n");
   bool retVal = true;
   uint32_t length = sizeof(SRXPROXY_SIGTRA_VALIDATION_RESPONSE);
   SRXPROXY_SIGTRA_VALIDATION_RESPONSE* pdu = malloc(length);
   pdu->type = PDU_SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
+  pdu->reserved16 = 0; 
+  pdu->reserved8 = 0;
+  pdu->zero32 = 0;
   pdu->length = htonl(length);
   pdu->signature_identifier = htonl(signature_identifier);
   pdu->valid = result ? 1 : 0;

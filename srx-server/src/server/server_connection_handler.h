@@ -204,9 +204,12 @@ void markConnectionHandlerShutdown(ServerConnectionHandler* self);
  */
 bool broadcastPacket(ServerConnectionHandler* self,
                      void* packet, PacketLength length);
+ 
 
 
-bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block);
+bool verify_signature(const uint8_t* hash, size_t hash_len, 
+                      const uint8_t* signature, size_t sig_len, 
+                      uint32_t asn);
 
 static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                       ServerSocket* svrSock, ClientThread* client,

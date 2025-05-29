@@ -394,9 +394,9 @@ typedef struct {
 // -----------------------------
 
 typedef struct {
-  uint8_t     id;   // order in current Signautre Block List 
+  uint8_t     id;   
 	uint8_t     signature[72];       
-  uint64_t    timestamp;           
+  uint32_t    timestamp;           
   uint8_t     ski[20];  
   uint32_t    creatingAS;
   uint32_t    nextASN;        
@@ -408,12 +408,11 @@ typedef struct {
 
 typedef struct { 
   // The type of the SRx packet.
-  uint8_t     type;
+  uint8_t     type;            
   uint16_t    reserved16;
   uint8_t     reserved8;
   uint32_t    reserved32;
-  // The total length of this header in bytes.
-  uint32_t    length;
+  uint32_t    length;    
 	uint32_t    signature_identifier;  
   uint8_t     blockCount;  
   uint8_t     prefixLen;         
@@ -423,6 +422,21 @@ typedef struct {
   uint32_t    otcField;             
   SRXPROXY_SIGTRA_BLOCK  blocks[];             
 } __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_REQUEST;
+
+typedef struct {
+  uint8_t     type;
+  uint16_t    reserved16;
+  uint8_t     reserved8;
+  uint32_t    reserved32;
+  uint32_t    length;
+  uint32_t    signature_identifier;
+  uint8_t     blockCount;
+  uint8_t     prefixLen;
+  uint32_t    prefix;
+  uint8_t     asPathLen;
+  uint32_t    asPath[16];
+  uint32_t    otcField;
+} __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_HEADER;
 
 // Defines the signature reqeust the client makes to the server 
 typedef struct {     
@@ -435,26 +449,32 @@ typedef struct {
   uint8_t     prefixLen;          // Prefix length (e.g., 24 for 203.0.113.0/24)  
   uint32_t    prefix;             // Support both IPv4 (first 4 bytes) and IPv6  
   uint8_t     asPathLen;          // Number of ASNs in the path  
-  uint32_t    asPath[16];         // Sequence of ASNs (up to 16 ASNs)  
-  uint8_t     pkiIDType;          // 0 = router ID, 1 = AS ID  
-  uint8_t     pkiID[20];          // SHA-1 (SKI) or similar ID length  
-  uint32_t    timestamp;          // Unix time or other timestamp format  
-  uint8_t     otcFlags;           // 1 byte for OTC indication 
+  uint32_t    asPath[16];         
+  uint32_t    originAS;
+  uint32_t    timestamp;          // Unix time or other timestamp format 
   uint32_t    otcField;           // Holds an ASN, only used when Flag is set
   uint8_t     peerCount;          // Number of Peers the message should be forwarded to 
-  uint32_t    peers[16];          // Sequence of Peer to send to (up to 16 ASNs)   
+  uint32_t    peers[16];  
+  uint8_t     blockCount;  
+  SRXPROXY_SIGTRA_BLOCK  blocks[];        // Sequence of Peer to send to (up to 16 ASNs)   
 } __attribute__((packed)) SRXPROXY_SIGTRA_GENERATION_REQUEST;
 
-typedef struct {   
-	uint8_t     type;     
-	uint32_t    length;     
+typedef struct {    
+  uint8_t     type;           
+  uint16_t    reserved16;
+  uint8_t     reserved8;
+  uint32_t    zero32;
+  uint32_t    length;      
 	uint32_t    signature_identifier;  
-  uint8_t     valid;           // 1 byte for OTC indication 
+  uint8_t     valid;           
 } __attribute__((packed)) SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
 
 typedef struct {  
-	uint8_t     type;     
-	uint32_t    length;        
+  uint8_t     type;            
+  uint16_t    reserved16;
+  uint8_t     reserved8;
+  uint32_t    zero32;
+  uint32_t    length;         
 	uint32_t    signature_identifier;  
 	uint8_t     signature[72];   
 } __attribute__((packed)) SRXPROXY_SIGTRA_SIGNATURE_RESPONSE;

@@ -894,55 +894,33 @@ bool processValidationRequest(ServerConnectionHandler* self,
 #define MAX_BLOCKS 16
 #define HASH_LEN SHA256_DIGEST_LENGTH
 
-/*void calculateHashed(const uint8_t* message, size_t message_len,
-  const SRXPROXY_SIGTRA_BLOCK* blocks, size_t depth,
-  uint8_t out_hashes[][HASH_LEN])
-{
-  if (!message || !blocks || !out_hashes || depth == 0) return;
-
-  // Step 1: H_0 = Hash(message)
-  SHA256(message, message_len, out_hashes[0]);
-
-  // Step 2: Compute each H_i
-  for (size_t i = 1; i <= depth; ++i) {
-  const SRXPROXY_SIGTRA_BLOCK* blk = &blocks[i - 1];
-  uint8_t input[HASH_LEN + sizeof(uint64_t) + 20 + sizeof(uint32_t) * 2];
-  size_t offset = 0;
-
-  memcpy(input + offset, out_hashes[i - 1], HASH_LEN); offset += HASH_LEN;
-  memcpy(input + offset, &blk->timestamp, sizeof(uint64_t)); offset += sizeof(uint64_t);
-  memcpy(input + offset, blk->ski, 20); offset += 20;
-  memcpy(input + offset, &blk->creatingAS, sizeof(uint32_t)); offset += sizeof(uint32_t);
-  memcpy(input + offset, &blk->nextASN, sizeof(uint32_t)); offset += sizeof(uint32_t);
-
-  SHA256(input, offset, out_hashes[i]);
+bool verify_signature(const uint8_t* hash, size_t hash_len, 
+                      const uint8_t* signature, size_t sig_len, 
+                      uint32_t asn){
+  if (hash == NULL || signature == NULL || hash_len != SHA256_DIGEST_LENGTH) {
+      fprintf(stderr, "Invalid input to signature verification.\n");
+      return false;
   }
-}*/
 
-void calculateHashed(){
-  // Input m to hash, depth, SigBlocks
-  /*
-  H_0 = Hash(m)
-  returnHashes = {}
-  returnHashes.append(H_0)
-  for i = 1 to depth do
-    H_i = Hash(H_(i-1) || SigBlocks[i-1].timestamp || SigBlocks[i-1].ski || SigBlocks[i-1].currentAS || SigBlocks[i-1].nextASN)
-    returnHashes.append(H_i)
-  end for
-  return returnHashes
-  */
-}
+  // print input for debugging
+  printf("Hash: ");
+  for (size_t i = 0; i < hash_len; i++) {
+      printf("%02x", hash[i]);
+  }
+  printf("\nSignature: ");
+  for (size_t i = 0; i < sig_len; i++) {
+      printf("%02x", signature[i]);
+  }
+  printf("\nASN: %u\n", asn);
+  
 
 
+  // Step 1: Load the public key
+  OpenSSL_add_all_algorithms();
+  ERR_load_crypto_strings();
 
-
-bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block){
-  // Direcotry for all public keys
-  //const char* publicKeyDir = "/etc/srxproxy/keys/";
+  printf("Validating signature for ASN: %u\n", asn);
   const char* publicKeyDir = "/home/nils/Dokumente/ASPA+/NIST-BGP-SRx/examples/bgpsec-keys/raw-keys/";
-  uint32_t asn = ntohl(block->creatingAS);
-  printf("Validating signature block for ASN: %u\n", asn);
-  // Step 1: Build the full path to the certificate file
   char certPath[512];
   snprintf(certPath, sizeof(certPath), "%s%u.cert", publicKeyDir, asn);
 
@@ -975,24 +953,23 @@ bool validateSignatureBlock(SRXPROXY_SIGTRA_BLOCK* block){
         return false;
     }
 
-  // Step 4: Hash the input message using SHA-256
-  /*uint8_t hash[SHA256_DIGEST_LENGTH];
-  SHA256(message, message_len, hash);
-
-  // Step 5: Verify the ECDSA signature
-  int valid = ECDSA_verify(0, hash, SHA256_DIGEST_LENGTH, block->signature, block->sigLen, ecKey);
+  // Step 4: Validate the given hash and signature
+  // Note: The hash should be the SHA-256 hash of the message that was signed.
+  int verify_status = ECDSA_verify(0, hash, hash_len, signature, sig_len, ecKey);
   EC_KEY_free(ecKey);
 
-  if (valid == 1) {
-      printf("Signature is valid!\n");
-      return true;
-  } else if (valid == 0) {
-      printf("Signature is invalid!\n");
+  if (verify_status == 1) {
+    printf("✅ Signature is valid.\n");
+    return true;
+  } else if (verify_status == 0) {
+      printf("❌ Signature is invalid.\n");
       return false;
   } else {
-      fprintf(stderr, "Error while verifying signature\n");
+      // verify_status == -1, an error occurred
+      fprintf(stderr, "🚨 Signature verification failed due to internal error.\n");
+      ERR_print_errors_fp(stderr); // OpenSSL error output
       return false;
-  }*/
+  }
  return true; // For now, always return true for testing purposes
 }
 
@@ -1001,20 +978,40 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
                               ServerSocket* svrSock, ClientThread* client,
                               SRXPROXY_SIGTRA_VALIDATION_REQUEST* validation_request)
 {
-  LOG(LEVEL_INFO, HDR "+--------------------processSigtraValidationRequest---------------------+", pthread_self());
-  
   bool retVal = true;
-  // ARray is in Strucutred: [lastHop,..,.., Origin]
+  // Array is in Strucutred: [lastHop,..,.., Origin]
 
+  SRXPROXY_SIGTRA_VALIDATION_REQUEST* req = validation_request;
+  uint32_t request_identifier = ntohl(req->signature_identifier);
+  uint8_t count = req->blockCount;
+  uint8_t  prefixLen = req->prefixLen;
+  uint32_t prefix    = ntohl(req->prefix);
+  uint8_t  asPathLen = req->asPathLen;
+  static uint32_t localAsPath[16]      = {0};
+  for (int i = 0; i < asPathLen && i < 16; i++) {
+      localAsPath[i] = ntohl(req->asPath[i]);
+  }
+  uint32_t otcField  = ntohs(req->otcField);
+  uint32_t originAs = localAsPath[asPathLen - 1];
+  
 
-  // Get data from the validation request
-  uint32_t localAsPath[16]; 
-  memcpy(localAsPath, validation_request->asPath, sizeof(uint32_t) * validation_request->asPathLen);
-  uint32_t originAs = localAsPath[validation_request->asPathLen - 1];
-  uint32_t asPathLen = ntohl(validation_request->asPathLen);
-  uint32_t prefix = ntohl(validation_request->prefix);
-  uint8_t prefixLen = validation_request->prefixLen;
-  uint32_t otcField = ntohl(validation_request->otcField);
+  // Print received data
+  printf("\n\n\n");
+  printf("\n--- Received SRXPROXY_SIGTRA_VALIDATION_REQUEST ---\n");
+  printf("Prefix Length:   %u\n", prefixLen);
+  printf("Prefix:          %u.%u.%u.%u (raw: 0x%08x)\n",
+        (prefix >> 24) & 0xFF, (prefix >> 16) & 0xFF,
+        (prefix >> 8) & 0xFF, prefix & 0xFF, prefix);
+
+  printf("AS Path Length:  %u\n", asPathLen);
+  for (int i = 0; i < asPathLen && i < 16; i++) {
+      printf("  AS Path[%d]:     %u\n", i, localAsPath[i]);
+  }
+  printf("Origin AS:      %u\n", originAs);
+  printf("OTC Field:      %u\n", otcField);
+  printf("Block Count:    %d\n", count);
+  printf("---------------------------------------------------\n\n");
+
 
   // Initial Hash = Hash(Origin || Prefix || PrefixLen || OTCField)
   uint8_t initialHash[SHA256_DIGEST_LENGTH];
@@ -1033,64 +1030,184 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
 
   // Pointer math to get first block
   uint8_t* raw = (uint8_t*)validation_request;
-  SRXPROXY_SIGTRA_BLOCK* blocks = (SRXPROXY_SIGTRA_BLOCK*)(raw + sizeof(SRXPROXY_SIGTRA_VALIDATION_REQUEST));
-  uint8_t count = validation_request->blockCount;
-  uint32_t identifier = ntohl(validation_request->signature_identifier);
+  SRXPROXY_SIGTRA_BLOCK* blocks = (SRXPROXY_SIGTRA_BLOCK*)(raw + sizeof(SRXPROXY_SIGTRA_VALIDATION_HEADER));
+
   for (uint8_t i = 0; i < count; i++)
   {
     SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
+    uint32_t creatorAS = ntohl(block->creatingAS);
+    // print block fields:
+    printf("\n-- Block %d --\n", i);
+    printf("Identifier:     %u\n", block->id);
+    printf("Signature:      ");
+    for (size_t j = 0; j < 10; j++) {
+        printf("%02x", block->signature[j]);
+    }
+    printf("[...]\n");
+    printf("Timestamp:      %u\n", ntohl(block->timestamp));
+    printf("Creating AS:    %u\n", creatorAS);
+    printf("Next ASN:       %u\n", ntohl(block->nextASN));
+    printf("SKI:            ");
+    for (size_t j = 0; j < sizeof(block->ski); j++) {
+        printf("%02x", block->ski[j]);
+    }
+    printf("\n");
+    bool continueProcessing = false;
     if (i == 0)  {
-      // Calculate first real hash
-      // Hash = Hash(H_(i-1) || timestamp || ski || creatingAS || nextASN)
-      uint8_t input[SHA256_DIGEST_LENGTH + sizeof(uint32_t) * 3 + 20];
-      size_t pos = 0;
-      memcpy(input + pos, initialHash, SHA256_DIGEST_LENGTH); pos += SHA256_DIGEST_LENGTH;
-      memcpy(input + pos, &block->timestamp, sizeof(uint32_t)); pos += sizeof(uint32_t);
-      memcpy(input + pos, block->ski, 20); pos += 20;
-      memcpy(input + pos, &block->creatingAS, sizeof(uint32_t)); pos += sizeof(uint32_t);
-      memcpy(input + pos, &block->nextASN, sizeof(uint32_t)); pos += sizeof(uint32_t);
-      uint8_t hash[SHA256_DIGEST_LENGTH];
-      SHA256(input, pos, hash);
-      printf("\nBlock %d Hash: ", i);
-      for (size_t j = 0; j < SHA256_DIGEST_LENGTH; j++) {
-          printf("%02x", hash[j]);
+      // Find the first signing AS in the AS path
+
+      for (uint8_t q = 0; q < asPathLen; q++) {
+        if (localAsPath[q] == creatorAS) {
+          printf("Found first signing AS %u at position %d in AS path\n", creatorAS, q);
+          
+          // Calculate first hash
+          // Hash = Hash(H_(i-1) || timestamp || ski || creatingAS || nextASN)
+          uint8_t input[SHA256_DIGEST_LENGTH + sizeof(uint32_t) * 3 + 20];
+          size_t pos = 0;
+          memcpy(input + pos, initialHash, SHA256_DIGEST_LENGTH); pos += SHA256_DIGEST_LENGTH;
+          memcpy(input + pos, &block->timestamp, sizeof(uint32_t)); pos += sizeof(uint32_t);
+          memcpy(input + pos, block->ski, 20); pos += 20;
+          memcpy(input + pos, &block->creatingAS, sizeof(uint32_t)); pos += sizeof(uint32_t);
+          memcpy(input + pos, &block->nextASN, sizeof(uint32_t)); pos += sizeof(uint32_t);
+          uint8_t hash[SHA256_DIGEST_LENGTH];
+          SHA256(input, pos, hash);
+          printf("\nBlock %d Hash:   ", i);
+          for (size_t j = 0; j < SHA256_DIGEST_LENGTH; j++) {
+              printf("%02x", hash[j]);
+          }
+          printf("\n");
+          printf("Done with Block %d (Creating AS %u)\n", i, creatorAS);
+
+          // Validate the signature of the first block
+          bool valid = verify_signature(
+              hash, SHA256_DIGEST_LENGTH,
+              block->signature, sizeof(block->signature),
+              creatorAS
+          );
+
+          printf("Signature for Block %d is %s\n", i, valid ? "valid" : "invalid");
+          continueProcessing = true;
+        }
+      } 
+      if (!continueProcessing) {
+        printf("No signing AS found in AS path for Block %d\n", i);
+        return false; 
       }
-      printf("\n");
     }
     else
     {
-      // TODO
       // H1=Hash(ASPath[:i] || Prefix || PrefixLen || OTCField)
       // H2=Hash(H1 || blocks[:i])
       // H3=Hash(H2 || blocks[i].timestamp || blocks[i].ski || blocks[i].creatingAS || blocks[i].nextASN)
 
       // Step 1: Get the AS path up to the current block
+      printf("ASpathlen: %d\n", asPathLen);
+
+      for (int j = asPathLen - 1; j >= 0; j--){
+        printf("Comparing AS Path[%d]: %u with creatingAS: %u\n", j, localAsPath[j], creatorAS);
+        if (localAsPath[j] == creatorAS) {
+          int indexfotLater = j;
+          printf("Assigned value for indexfotLater: %d\n", indexfotLater);
+          printf("Found current AS %u at position %d in AS path\n", creatorAS, j);
+          // Found the current AS: create aspath up to this point (exluding it)
+          uint8_t asPathInput[sizeof(uint32_t) * j];
+          size_t asPathOffset = 0;
+          for (uint8_t u = 0; u < j; u++) {
+            memcpy(asPathInput + asPathOffset, &localAsPath[u], sizeof(uint32_t));
+            asPathOffset += sizeof(uint32_t);
+          }
+          // print the AS path
+          printf("AS Path for block %d: ", i);
+          for (size_t l = 0; l < asPathOffset / sizeof(uint32_t); l++) {
+              printf("%u ", ntohl(*(uint32_t*)(asPathInput + l * sizeof(uint32_t))));
+          }
+          printf("\n");
+          // Step 2: Hash the AS path, prefix, prefix length, and OTC field
+          uint8_t asPathHash[SHA256_DIGEST_LENGTH];
+          uint8_t asPathInputFull[SHA256_DIGEST_LENGTH + sizeof(uint32_t) * 3 + sizeof(uint8_t)];
+          size_t asPathInputOffset = 0;
+          memcpy(asPathInputFull + asPathInputOffset, asPathInput, asPathOffset);
+          asPathInputOffset += asPathOffset;
+          memcpy(asPathInputFull + asPathInputOffset, &prefix, sizeof(uint32_t));
+          asPathInputOffset += sizeof(uint32_t);
+          memcpy(asPathInputFull + asPathInputOffset, &prefixLen, sizeof(uint8_t));
+          asPathInputOffset += sizeof(uint8_t);
+          memcpy(asPathInputFull + asPathInputOffset, &otcField, sizeof(uint32_t));
+          asPathInputOffset += sizeof(uint32_t);
+          SHA256(asPathInputFull, asPathInputOffset, asPathHash);
+          printf("AS Path Hash for block %d: ", i);
+          for (size_t q = 0; q < SHA256_DIGEST_LENGTH; q++) {
+              printf("%02x", asPathHash[q]);
+          }
+          printf("\n");
+          
+          size_t previousBlocksOffset = 0;
+          size_t maxSize = sizeof(SRXPROXY_SIGTRA_BLOCK) * (i + 1);
+          uint8_t* previousBlocksInput = malloc(maxSize);
+          if (!previousBlocksInput) {
+              fprintf(stderr, "Allocation failed!\n");
+              exit(1);
+          }
+          for (uint8_t k = 0; k <= i; k++) {
+            memcpy(previousBlocksInput + previousBlocksOffset, &blocks[k], sizeof(SRXPROXY_SIGTRA_BLOCK));
+            previousBlocksOffset += sizeof(SRXPROXY_SIGTRA_BLOCK);
+          }
+          
+          // Step 4: Hash the AS path hash and previous blocks
+          uint8_t previousBlocksHash[SHA256_DIGEST_LENGTH];
+          uint8_t previousBlocksInputFull[SHA256_DIGEST_LENGTH + previousBlocksOffset];
+          size_t previousBlocksInputFullOffset = 0;
+          memcpy(previousBlocksInputFull + previousBlocksInputFullOffset, asPathHash, SHA256_DIGEST_LENGTH);
+          previousBlocksInputFullOffset += SHA256_DIGEST_LENGTH;
+          memcpy(previousBlocksInputFull + previousBlocksInputFullOffset, previousBlocksInput, previousBlocksOffset);
+          previousBlocksInputFullOffset += previousBlocksOffset;
+          SHA256(previousBlocksInputFull, previousBlocksInputFullOffset, previousBlocksHash);
+          printf("Previous Blocks Hash for block %d: ", i);
+          for (size_t r = 0; r < SHA256_DIGEST_LENGTH; r++) {
+              printf("%02x", previousBlocksHash[r]);
+          }
+          printf("\n");
+
+          // Step 5: Hash the previous blocks hash with the current block's timestamp, ski, creatingAS, and nextASN
+          uint8_t finalInput[SHA256_DIGEST_LENGTH + sizeof(uint32_t) * 3 + 20];
+          size_t finalInputOffset = 0;
+          memcpy(finalInput + finalInputOffset, previousBlocksHash, SHA256_DIGEST_LENGTH);    
+          finalInputOffset += SHA256_DIGEST_LENGTH;
+          memcpy(finalInput + finalInputOffset, &block->timestamp, sizeof(uint32_t));
+          finalInputOffset += sizeof(uint32_t);
+          memcpy(finalInput + finalInputOffset, block->ski, 20);
+          finalInputOffset += 20;
+          memcpy(finalInput + finalInputOffset, &block->creatingAS, sizeof(uint32_t));
+          finalInputOffset += sizeof(uint32_t);
+          memcpy(finalInput + finalInputOffset, &block->nextASN, sizeof(uint32_t));
+          finalInputOffset += sizeof(uint32_t);
+          uint8_t finalHash[SHA256_DIGEST_LENGTH];
+          SHA256(finalInput, finalInputOffset, finalHash);
+          printf("Final Hash for block %d: ", i);
+          for (size_t t = 0; t < SHA256_DIGEST_LENGTH; t++) {
+              printf("%02x", finalHash[t]);
+          }
+          printf("\n");
+
+          // Step 6: Verify the signature
+          // Calculate siganture length (not including the block, only got the signature)
+          int sigLen = sizeof(block->signature);
+          printf("Validating for ASN: %u with signature length: %d\n", creatorAS, sigLen);
+          printf("Indexfrom later: %d\n", indexfotLater);
+          bool valid = verify_signature(
+              finalInput, SHA256_DIGEST_LENGTH,
+              block->signature, sizeof(block->signature),
+              creatorAS
+          );
+          free(previousBlocksInput);
+          break; // Exit the loop once we found the current AS in the path
+        }
+      }
+      return false; // If we reach here, the current AS was not found in the path
     }
-    
-
-
-
-
-
-    //bool valid = validateSignatureBlock(block);
-    bool valid = true; // For now, always return true for testing purposes
-    if (!valid)
-    {
-      LOG(LEVEL_INFO, HDR "Signature block %d is INVALID", pthread_self(), i);
-      retVal = false; 
-    }
-    else
-    {
-      LOG(LEVEL_INFO, HDR "Signature block %d is valid", pthread_self(), i);
-    }
-  }
-  if (!sendSigtraResult(svrSock, client, retVal, false, identifier)) {
-    LOG(LEVEL_ERROR, HDR "Failed to send signature validation result");
-    retVal = false;
-  }
+  }  
   return retVal;
 }
-
 void hexDump(const void* data, size_t size) {
   const uint8_t* byte = (const uint8_t*)data;
   for (size_t i = 0; i < size; i += 16) {
@@ -1304,27 +1421,22 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
                                             ServerSocket* svrSock, ClientThread* client,
                                             SRXPROXY_SIGTRA_GENERATION_REQUEST* generation_request) 
   {
-    LOG(LEVEL_INFO, HDR "+--------------------processSigtraGenerationRequest---------------------+", pthread_self());
     bool retVal = true;
     SRXPROXY_SIGTRA_GENERATION_REQUEST* req = generation_request;
+
     // Extract fields from the request
-    uint32_t signature_id     = ntohl(req->signature_identifier);  // convert to host byte order
+    uint32_t signature_id     = ntohl(req->signature_identifier);  
     uint8_t  prefix_len       = req->prefixLen;
     uint32_t prefix           = ntohl(req->prefix);
     uint8_t  as_path_len      = req->asPathLen;
     static uint32_t as_path[16]      = {0};
-    for (int i = 0; i < as_path_len && i < 16; i++) {
-        as_path[i] = ntohl(req->asPath[i]);
-    }
-
-    uint8_t  pki_id_type      = req->pkiIDType;
-    uint8_t pki_id[20]      = {0};
-    for (int i = 0; i < 20; i++) {
-        pki_id[i] = req->pkiID[i];
-    }
-
+    if ( as_path_len > 0) {
+      for (int i = 0; i < as_path_len && i < 16; i++) {
+          as_path[i] = ntohl(req->asPath[i]);
+      }
+    } 
+    uint32_t originAS = req->originAS;
     uint32_t timestamp = ntohl(req->timestamp);
-    uint8_t  otc_flags        = req->otcFlags;
     uint16_t otc_field        = ntohs(req->otcField);
     uint8_t  peer_count       = req->peerCount;
     static uint32_t peers[16]        = {0};
@@ -1332,11 +1444,8 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         peers[i] = ntohl(req->peers[i]);
     }
 
-    uint8_t* ts_bytes = (uint8_t*)&timestamp;
-
-
-
     // ---------- Print All Data ---------- //
+    printf("\n\n\n");
     printf("\n--- Received SRXPROXY_SIGTRA_GENERATION_REQUEST ---\n");
     printf("Signature ID:    %u (0x%08x)\n", signature_id, signature_id);
     printf("Prefix Length:   %u\n", prefix_len);
@@ -1348,16 +1457,9 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
     for (int i = 0; i < as_path_len && i < 16; i++) {
         printf("  AS Path[%d]:      %u\n", i, as_path[i]);
     }
-    printf("Raw PKI Type:    %u\n", pki_id_type);
-    printf("PKI ID:          ");
-    for (int i = 0; i < 20; i++) {
-        printf("%02x", pki_id[i]);
-    }
-    printf("\n");
     printf("Raw Timestamp:   %u\n", ntohl(timestamp));
-    printf("OTC Flags:       %u\n", otc_flags);
     printf("OTC Field:       %u\n", otc_field);
-
+    printf("Origin AS:       %u\n", originAS);
     printf("Peer Count:      %u\n", peer_count);
     for (int i = 0; i < peer_count && i < 16; i++) {
         printf("  Peer[%d]:        %u\n", i, peers[i]);
@@ -1371,6 +1473,7 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         perror("Failed to open key file");
         return 1;
     }
+    printf("Opened Key file");
     EC_KEY* key = load_ec_key_from_file(keyfile);
     
     // Load SKI 
@@ -1419,7 +1522,7 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         &sigBlock
       );
   
-      if (result) {
+      /*if (result) {
         printf("Signature generated successfully! Signature length = %u bytes\n", sigBlock.sigLen);
         printf("Signature (hex): ");
         for (unsigned int i = 0; i < sigBlock.sigLen; ++i)
@@ -1448,7 +1551,7 @@ static bool processSigtraGenerationRequest(ServerConnectionHandler* self,
         }
       } else {
           fprintf(stderr, "Signing failed!\n");
-      }
+      }*/
     }
 
     EC_KEY_free(key);
@@ -1550,6 +1653,12 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
                          void* srvConHandler)
 {
   LOG(LEVEL_DEBUG, HDR "Enter handlePacket", pthread_self());
+  // print raw packet data for debugging
+  hexDump(packet, length);
+  // Check if the packet is valid and has the minimum required length
+  // convert hex string to binary string
+
+
   ServerConnectionHandler* self  = (ServerConnectionHandler*)srvConHandler;
   SRXPROXY_BasicHeader*    bhdr  = NULL;
   SRXPROXY_SIGN_REQUEST*   srHdr  = NULL;
@@ -1634,13 +1743,18 @@ void _handlePacket(ServerSocket* svrSock, ServerClient* client,
         LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA__VALIDATION_REQUEST");
         SRXPROXY_SIGTRA_VALIDATION_REQUEST* valReq = (SRXPROXY_SIGTRA_VALIDATION_REQUEST*)packet;
         bool val_result = processSigtraValidationRequest(self, svrSock, client, valReq);
-
-      break;
+        printf("Validation result: %d\n", val_result);
+        if(!sendSigtraResult(svrSock, client, val_result, false, 0)){
+          RAISE_ERROR("Failed to send SRXPROXY_SIGTRA_VALIDATION_RESPONSE");
+          sendError(SRXERR_INTERNAL_ERROR, svrSock, client, false);
+          sendGoodbye(svrSock, client, false);
+        }
+        break;
       case PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST:
         LOG(LEVEL_INFO,  "Received PDU_SRXPROXY_SIGTRA_GENERATION_REQUEST");
         SRXPROXY_SIGTRA_GENERATION_REQUEST* genReq = (SRXPROXY_SIGTRA_GENERATION_REQUEST*)packet;
         bool gen_result = processSigtraGenerationRequest(self, svrSock, client, genReq);
-      break;  
+        break;  
       case PDU_SRXPROXY_SIGN_REQUEST:
         if (!clientThread->initialized)
         {
