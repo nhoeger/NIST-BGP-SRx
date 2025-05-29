@@ -754,19 +754,33 @@ bool sendSigtraResult(ServerSocket* srvSoc, ServerClient* client,bool result, bo
 /**
  * Send the resutlts of the signature generation to the client. 
  */
-bool sendSigtraGeneration(ServerSocket* srvSoc, ServerClient* client,bool result, bool useQueue,
-  uint32_t signature_identifier){
-bool retVal = true;
-uint32_t length = sizeof(SRXPROXY_SIGTRA_VALIDATION_RESPONSE);
-SRXPROXY_SIGTRA_VALIDATION_RESPONSE* pdu = malloc(length);
-pdu->type = PDU_SRXPROXY_SIGTRA_VALIDATION_RESPONSE;
-pdu->length = htonl(length);
-pdu->signature_identifier = htonl(signature_identifier);
-pdu->valid = result ? 1 : 0;
-if (!__sendPacketToClient(srvSoc, client, pdu, length, useQueue))
-{
-RAISE_SYS_ERROR("Could not send the error report. Result was: %u", result);
-retVal = false;
-}
-return retVal;
+bool sendSigtraGeneration(ServerSocket* srvSoc, ServerClient* client,bool useQueue,
+  uint32_t signature_identifier, uint8_t* signature, unsigned int signature_len) {
+  bool retVal = true;
+  uint32_t length = sizeof(SRXPROXY_SIGTRA_SIGNATURE_RESPONSE);
+  SRXPROXY_SIGTRA_SIGNATURE_RESPONSE* pdu = malloc(length);
+  if (!pdu) {
+      fprintf(stderr, "Memory allocation failed\n");
+      return false;
+  }
+
+  pdu->type = PDU_SRXPROXY_SIGTRA_SIGNATURE_RESPONSE;               
+  pdu->reserved16 = 0;
+  pdu->reserved8 = 0;
+  pdu->length = htonl(length);
+  pdu->signature_identifier = htonl(signature_identifier);
+  unsigned int copy_len = signature_len > 72 ? 72 : signature_len;
+  memcpy(pdu->signature, signature, copy_len);
+  if (copy_len < 72) {
+      // Rest mit 0 auffüllen (optional, um Garbage zu vermeiden)
+      memset(pdu->signature + copy_len, 0, 72 - copy_len);
+  }
+
+  if (!__sendPacketToClient(srvSoc, client, pdu, length, useQueue)) {
+      RAISE_SYS_ERROR("Could not send the signature response.");
+      retVal = false;
+  }
+
+  free(pdu);
+  return retVal;
 }

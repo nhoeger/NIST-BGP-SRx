@@ -455,6 +455,7 @@ typedef struct {
   uint32_t    otcField;           // Holds an ASN, only used when Flag is set
   uint8_t     peerCount;          // Number of Peers the message should be forwarded to 
   uint32_t    peers[16];  
+  uint32_t    reqAS;
   uint8_t     blockCount;  
   SRXPROXY_SIGTRA_BLOCK  blocks[];        // Sequence of Peer to send to (up to 16 ASNs)   
 } __attribute__((packed)) SRXPROXY_SIGTRA_GENERATION_REQUEST;
