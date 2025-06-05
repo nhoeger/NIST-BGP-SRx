@@ -477,6 +477,7 @@ typedef struct {
   uint32_t    zero32;
   uint32_t    length;         
 	uint32_t    signature_identifier;  
+  uint32_t    signature_length;
 	uint8_t     signature[72];   
 } __attribute__((packed)) SRXPROXY_SIGTRA_SIGNATURE_RESPONSE;
 

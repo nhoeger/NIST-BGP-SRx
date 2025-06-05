@@ -769,6 +769,8 @@ bool sendSigtraGeneration(ServerSocket* srvSoc, ServerClient* client,bool useQue
   pdu->reserved8 = 0;
   pdu->length = htonl(length);
   pdu->signature_identifier = htonl(signature_identifier);
+  pdu->zero32 = 0;
+  pdu->signature_length = htonl(signature_len);
   unsigned int copy_len = signature_len > 72 ? 72 : signature_len;
   memcpy(pdu->signature, signature, copy_len);
   if (copy_len < 72) {
