@@ -1039,6 +1039,7 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
     // print block fields:
     printf("\n-- Block %d --\n", i);
     printf("Identifier:     %u\n", block->id);
+    printf("Signature Length: %u\n", block->signatureLength);
     printf("Signature:      ");
     for (size_t j = 0; j < 10; j++) {
         printf("%02x", block->signature[j]);

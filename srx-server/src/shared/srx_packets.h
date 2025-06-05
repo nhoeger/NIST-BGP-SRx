@@ -385,7 +385,7 @@ typedef struct {
 
 
 /**
- * THE FOLLOWING CODE IS USED FOR TRANSITIVE SIGANTURE GENERATION AND VALIDATION
+ * THE FOLLOWING CODE IS USED FOR TRANSITIVE SIGNATURE GENERATION AND VALIDATION
  */
 
 
@@ -395,6 +395,7 @@ typedef struct {
 
 typedef struct {
   uint8_t     id;   
+  uint32_t    signatureLength;
 	uint8_t     signature[72];       
   uint32_t    timestamp;           
   uint8_t     ski[20];  
