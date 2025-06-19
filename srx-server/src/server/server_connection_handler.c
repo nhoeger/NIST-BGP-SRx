@@ -998,6 +998,9 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
   // Print received data
   printf("\n\n\n");
   printf("\n--- Received SRXPROXY_SIGTRA_VALIDATION_REQUEST ---\n");
+  // print identifier
+  printf("Identifier:      %u\n", request_identifier);
+  // print extracted block count 
   printf("Prefix Length:   %u\n", prefixLen);
   printf("Prefix:          %u.%u.%u.%u (raw: 0x%08x)\n",
         (prefix >> 24) & 0xFF, (prefix >> 16) & 0xFF,
@@ -1034,7 +1037,15 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
 
   for (uint8_t i = 0; i < count; i++)
   {
+    
     SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
+    printf("Raw block dump:\n");
+    const uint8_t* raw = (const uint8_t*)block;
+    for (size_t k = 0; k < sizeof(SRXPROXY_SIGTRA_BLOCK); k++) {
+        printf("%02x ", raw[k]);
+        if ((k+1) % 16 == 0) printf("\n");
+    }
+    printf("\n");
     uint32_t creatorAS = ntohl(block->creatingAS);
     // print block fields:
     printf("\n-- Block %d --\n", i);
