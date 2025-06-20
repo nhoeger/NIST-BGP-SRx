@@ -1037,7 +1037,7 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
 
   for (uint8_t i = 0; i < count; i++)
   {
-    
+    // Extract all fields for current block
     SRXPROXY_SIGTRA_BLOCK* block = &blocks[i];
     printf("Raw block dump:\n");
     const uint8_t* raw = (const uint8_t*)block;
@@ -1046,20 +1046,34 @@ static bool processSigtraValidationRequest(ServerConnectionHandler* self,
         if ((k+1) % 16 == 0) printf("\n");
     }
     printf("\n");
+
+    uint8_t block_id = block->id;
+    uint32_t signature_length = ntohl(block->signatureLength);
+    uint32_t timestamp = ntohl(block->timestamp);
+    uint32_t nextASN = ntohl(block->nextASN);
     uint32_t creatorAS = ntohl(block->creatingAS);
+    uint8_t ski[20];
+    memcpy(ski, block->ski, sizeof(block->ski));
+    printf("SKI: ");
+    for (size_t j = 0; j < sizeof(ski); j++) {
+        printf("%02x", ski[j]);
+    }
+    printf("\n");
+    
     // print block fields:
     printf("\n-- Block %d --\n", i);
-    printf("Identifier:     %u\n", block->id);
-    printf("Signature Length: %u\n", block->signatureLength);
+    printf("Identifier:     %u\n", block_id);
+    printf("Signature Length: %u\n", signature_length);
     printf("Signature:      ");
-    for (size_t j = 0; j < 10; j++) {
-        printf("%02x", block->signature[j]);
-    }
+    for (size_t j = 0; j < sizeof(block->signature); j++) {
+    printf("%02x", block->signature[j]);
+}
     printf("[...]\n");
-    printf("Timestamp:      %u\n", ntohl(block->timestamp));
+    printf("Timestamp:      %u\n", timestamp);
     printf("Creating AS:    %u\n", creatorAS);
-    printf("Next ASN:       %u\n", ntohl(block->nextASN));
+    printf("Next ASN:       %u\n", nextASN);
     printf("SKI:            ");
+    // print ski:
     for (size_t j = 0; j < sizeof(block->ski); j++) {
         printf("%02x", block->ski[j]);
     }
